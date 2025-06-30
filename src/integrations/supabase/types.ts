@@ -9,7 +9,276 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      etapas: {
+        Row: {
+          created_at: string
+          data_fim: string
+          data_inicio: string
+          id: string
+          nome: string
+          obra_id: string | null
+          progresso: number | null
+          responsavel: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_fim: string
+          data_inicio: string
+          id?: string
+          nome: string
+          obra_id?: string | null
+          progresso?: number | null
+          responsavel: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_fim?: string
+          data_inicio?: string
+          id?: string
+          nome?: string
+          obra_id?: string | null
+          progresso?: number | null
+          responsavel?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapas_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funcionarios: {
+        Row: {
+          created_at: string
+          diaria: number
+          email: string
+          funcao: string
+          id: string
+          nome: string
+          status: string
+          telefone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          diaria: number
+          email: string
+          funcao: string
+          id?: string
+          nome: string
+          status?: string
+          telefone: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          diaria?: number
+          email?: string
+          funcao?: string
+          id?: string
+          nome?: string
+          status?: string
+          telefone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      materiais: {
+        Row: {
+          created_at: string
+          fornecedor: string
+          id: string
+          nome: string
+          obra_id: string | null
+          quantidade: number
+          status: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          fornecedor: string
+          id?: string
+          nome: string
+          obra_id?: string | null
+          quantidade: number
+          status?: string
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          fornecedor?: string
+          id?: string
+          nome?: string
+          obra_id?: string | null
+          quantidade?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "materiais_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obras: {
+        Row: {
+          cliente: string
+          created_at: string
+          data_inicio: string
+          endereco: string
+          id: string
+          nome: string
+          orcamento: number
+          previsao_fim: string
+          progresso: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cliente: string
+          created_at?: string
+          data_inicio: string
+          endereco: string
+          id?: string
+          nome: string
+          orcamento: number
+          previsao_fim: string
+          progresso?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cliente?: string
+          created_at?: string
+          data_inicio?: string
+          endereco?: string
+          id?: string
+          nome?: string
+          orcamento?: number
+          previsao_fim?: string
+          progresso?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      orcamentos: {
+        Row: {
+          cliente: string
+          created_at: string
+          data_criacao: string
+          id: string
+          numero: string
+          obra: string
+          status: string
+          updated_at: string
+          user_id: string
+          validade: string
+          valor: number
+        }
+        Insert: {
+          cliente: string
+          created_at?: string
+          data_criacao?: string
+          id?: string
+          numero: string
+          obra: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          validade: string
+          valor: number
+        }
+        Update: {
+          cliente?: string
+          created_at?: string
+          data_criacao?: string
+          id?: string
+          numero?: string
+          obra?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          validade?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      transacoes: {
+        Row: {
+          categoria: string
+          created_at: string
+          data: string
+          descricao: string
+          id: string
+          obra_id: string | null
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          data?: string
+          descricao: string
+          id?: string
+          obra_id?: string | null
+          tipo: string
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data?: string
+          descricao?: string
+          id?: string
+          obra_id?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transacoes_obra_id_fkey"
+            columns: ["obra_id"]
+            isOneToOne: false
+            referencedRelation: "obras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

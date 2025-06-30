@@ -1,41 +1,43 @@
+
 import { Package, Plus, ShoppingCart, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { NovoMaterialForm } from "@/components/forms/NovoMaterialForm";
 
 const Materiais = () => {
-  const navigate = useNavigate();
+  const [materiais, setMateriais] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
-  const materiais = [
-    {
-      id: 1,
-      nome: "Cimento CP-III 50kg",
-      quantidade: 50,
-      valor: 25.90,
-      fornecedor: "Construmax",
-      status: "Em Estoque",
-      obra: "Casa Residencial - João Silva"
-    },
-    {
-      id: 2,
-      nome: "Tijolo Cerâmico 6 furos",
-      quantidade: 1000,
-      valor: 0.45,
-      fornecedor: "Cerâmica Sol",
-      status: "Pendente",
-      obra: "Casa Residencial - João Silva"
-    },
-    {
-      id: 3,
-      nome: "Tinta Acrílica Branca 18L",
-      quantidade: 5,
-      valor: 89.90,
-      fornecedor: "Tinta Fácil",
-      status: "Comprado",
-      obra: "Reforma Comercial - Loja ABC"
+  useEffect(() => {
+    fetchMateriais();
+  }, []);
+
+  const fetchMateriais = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("materiais")
+        .select(`
+          *,
+          obras(nome)
+        `)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setMateriais(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar materiais:", error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -65,9 +67,21 @@ const Materiais = () => {
     }
   };
 
-  const handleAddMaterial = () => {
-    alert("Funcionalidade de adicionar material será implementada em breve!");
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    fetchMateriais();
   };
+
+  if (showForm) {
+    return (
+      <div className="p-6">
+        <NovoMaterialForm 
+          onSuccess={handleFormSuccess}
+          onCancel={() => setShowForm(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -78,56 +92,77 @@ const Materiais = () => {
         </div>
         <Button 
           className="bg-secondary hover:bg-secondary/90"
-          onClick={handleAddMaterial}
+          onClick={() => setShowForm(true)}
         >
           <Plus className="w-4 h-4 mr-2" />
           Novo Material
         </Button>
       </div>
 
-      <div className="grid gap-6">
-        {materiais.map((material) => (
-          <Card key={material.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-navy">{material.nome}</CardTitle>
-                  <CardDescription>{material.obra}</CardDescription>
+      {loading ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500">Carregando materiais...</p>
+        </div>
+      ) : materiais.length === 0 ? (
+        <div className="text-center py-8">
+          <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhum material cadastrado</h3>
+          <p className="text-gray-500 mb-4">Comece adicionando materiais ao seu estoque</p>
+          <Button 
+            className="bg-secondary hover:bg-secondary/90"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Adicionar Primeiro Material
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          {materiais.map((material) => (
+            <Card key={material.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-navy">{material.nome}</CardTitle>
+                    <CardDescription>
+                      {material.obras ? material.obras.nome : "Material geral"}
+                    </CardDescription>
+                  </div>
+                  <Badge className={`${getStatusColor(material.status)} flex items-center gap-1`}>
+                    {getStatusIcon(material.status)}
+                    {material.status}
+                  </Badge>
                 </div>
-                <Badge className={`${getStatusColor(material.status)} flex items-center gap-1`}>
-                  {getStatusIcon(material.status)}
-                  {material.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <span className="text-sm text-gray-500">Quantidade</span>
-                  <p className="font-semibold">{material.quantidade.toLocaleString()}</p>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div>
+                    <span className="text-sm text-gray-500">Quantidade</span>
+                    <p className="font-semibold">{material.quantidade.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Valor Unitário</span>
+                    <p className="font-semibold">R$ {material.valor.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Valor Total</span>
+                    <p className="font-semibold text-secondary">
+                      R$ {(material.quantidade * material.valor).toLocaleString('pt-BR', {
+                        minimumFractionDigits: 2
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Fornecedor</span>
+                    <p className="font-semibold">{material.fornecedor}</p>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-500">Valor Unitário</span>
-                  <p className="font-semibold">R$ {material.valor.toFixed(2)}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Valor Total</span>
-                  <p className="font-semibold text-secondary">
-                    R$ {(material.quantidade * material.valor).toLocaleString('pt-BR', {
-                      minimumFractionDigits: 2
-                    })}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Fornecedor</span>
-                  <p className="font-semibold">{material.fornecedor}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

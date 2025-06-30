@@ -1,44 +1,40 @@
+
 import { FileText, Plus, Send, Eye, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { NovoOrcamentoForm } from "@/components/forms/NovoOrcamentoForm";
 
 const Orcamentos = () => {
-  const navigate = useNavigate();
+  const [orcamentos, setOrcamentos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
 
-  const orcamentos = [
-    {
-      id: 1,
-      numero: "ORC-001",
-      cliente: "João Silva",
-      obra: "Casa Residencial",
-      valor: 150000,
-      data: "10/03/2024",
-      validade: "10/04/2024",
-      status: "Aceito"
-    },
-    {
-      id: 2,
-      numero: "ORC-002",
-      cliente: "Maria Santos",
-      obra: "Reforma Comercial",
-      valor: 80000,
-      data: "12/03/2024",
-      validade: "12/04/2024",
-      status: "Enviado"
-    },
-    {
-      id: 3,
-      numero: "ORC-003",
-      cliente: "Pedro Oliveira",
-      obra: "Ampliação Residencial",
-      valor: 95000,
-      data: "14/03/2024",
-      validade: "14/04/2024",
-      status: "Rascunho"
+  useEffect(() => {
+    fetchOrcamentos();
+  }, []);
+
+  const fetchOrcamentos = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("orcamentos")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setOrcamentos(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar orçamentos:", error);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -55,21 +51,33 @@ const Orcamentos = () => {
     }
   };
 
-  const handleAddBudget = () => {
-    alert("Funcionalidade de criar orçamento será implementada em breve!");
+  const handleFormSuccess = () => {
+    setShowForm(false);
+    fetchOrcamentos();
   };
 
-  const handleViewBudget = (id: number) => {
+  const handleViewBudget = (id: string) => {
     alert(`Visualizar orçamento ${id} - funcionalidade será implementada em breve!`);
   };
 
-  const handleDownloadBudget = (id: number) => {
+  const handleDownloadBudget = (id: string) => {
     alert(`Download orçamento ${id} - funcionalidade será implementada em breve!`);
   };
 
-  const handleSendBudget = (id: number) => {
+  const handleSendBudget = (id: string) => {
     alert(`Enviar orçamento ${id} - funcionalidade será implementada em breve!`);
   };
+
+  if (showForm) {
+    return (
+      <div className="p-6">
+        <NovoOrcamentoForm 
+          onSuccess={handleFormSuccess}
+          onCancel={() => setShowForm(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -80,72 +88,95 @@ const Orcamentos = () => {
         </div>
         <Button 
           className="bg-secondary hover:bg-secondary/90"
-          onClick={handleAddBudget}
+          onClick={() => setShowForm(true)}
         >
           <Plus className="w-4 h-4 mr-2" />
           Novo Orçamento
         </Button>
       </div>
 
-      <div className="grid gap-6">
-        {orcamentos.map((orcamento) => (
-          <Card key={orcamento.id} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-navy">{orcamento.numero}</CardTitle>
-                  <CardDescription>{orcamento.cliente} • {orcamento.obra}</CardDescription>
+      {loading ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500">Carregando orçamentos...</p>
+        </div>
+      ) : orcamentos.length === 0 ? (
+        <div className="text-center py-8">
+          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhum orçamento criado</h3>
+          <p className="text-gray-500 mb-4">Comece criando seu primeiro orçamento</p>
+          <Button 
+            className="bg-secondary hover:bg-secondary/90"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Criar Primeiro Orçamento
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          {orcamentos.map((orcamento) => (
+            <Card key={orcamento.id} className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-navy">{orcamento.numero}</CardTitle>
+                    <CardDescription>{orcamento.cliente} • {orcamento.obra}</CardDescription>
+                  </div>
+                  <Badge className={getStatusColor(orcamento.status)}>
+                    {orcamento.status}
+                  </Badge>
                 </div>
-                <Badge className={getStatusColor(orcamento.status)}>
-                  {orcamento.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                <div>
-                  <span className="text-sm text-gray-500">Valor</span>
-                  <p className="font-bold text-lg text-secondary">
-                    R$ {orcamento.valor.toLocaleString('pt-BR')}
-                  </p>
+              </CardHeader>
+              
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <div>
+                    <span className="text-sm text-gray-500">Valor</span>
+                    <p className="font-bold text-lg text-secondary">
+                      R$ {orcamento.valor.toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Data</span>
+                    <p className="font-semibold">
+                      {new Date(orcamento.data_criacao).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-gray-500">Validade</span>
+                    <p className="font-semibold">
+                      {new Date(orcamento.validade).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleViewBudget(orcamento.id)}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleDownloadBudget(orcamento.id)}
+                    >
+                      <Download className="w-4 h-4" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => handleSendBudget(orcamento.id)}
+                    >
+                      <Send className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-500">Data</span>
-                  <p className="font-semibold">{orcamento.data}</p>
-                </div>
-                <div>
-                  <span className="text-sm text-gray-500">Validade</span>
-                  <p className="font-semibold">{orcamento.validade}</p>
-                </div>
-                <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleViewBudget(orcamento.id)}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleDownloadBudget(orcamento.id)}
-                  >
-                    <Download className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleSendBudget(orcamento.id)}
-                  >
-                    <Send className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

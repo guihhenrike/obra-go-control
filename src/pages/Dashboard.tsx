@@ -1,3 +1,4 @@
+
 import { Building2, Users, Package, DollarSign, Calendar, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentWorks } from "@/components/dashboard/RecentWorks";
@@ -5,59 +6,50 @@ import { FinancialChart } from "@/components/dashboard/FinancialChart";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-
-const upcomingTasks = [
-  {
-    id: 1,
-    title: "Entrega de materiais - Obra Silva",
-    date: "Hoje, 14:00",
-    priority: "high",
-    type: "material"
-  },
-  {
-    id: 2,
-    title: "Pagamento equipe - Obra ABC",
-    date: "Amanhã, 09:00", 
-    priority: "high",
-    type: "payment"
-  },
-  {
-    id: 3,
-    title: "Inspeção elétrica - Cobertura",
-    date: "23/01, 10:00",
-    priority: "medium",
-    type: "inspection"
-  },
-  {
-    id: 4,
-    title: "Reunião cliente - Projeto novo",
-    date: "25/01, 15:30",
-    priority: "low",
-    type: "meeting"
-  }
-];
-
-const getPriorityColor = (priority: string) => {
-  switch (priority) {
-    case "high": return "text-red-600 bg-red-50 border-red-200";
-    case "medium": return "text-yellow-600 bg-yellow-50 border-yellow-200";
-    case "low": return "text-green-600 bg-green-50 border-green-200";
-    default: return "text-gray-600 bg-gray-50 border-gray-200";
-  }
-};
-
-const getTypeIcon = (type: string) => {
-  switch (type) {
-    case "material": return <Package className="w-4 h-4" />;
-    case "payment": return <DollarSign className="w-4 h-4" />;
-    case "inspection": return <CheckCircle className="w-4 h-4" />;
-    case "meeting": return <Users className="w-4 h-4" />;
-    default: return <Calendar className="w-4 h-4" />;
-  }
-};
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    obras: 0,
+    funcionarios: 0,
+    receita: 0,
+    materiaisPendentes: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Buscar contadores
+      const [obrasRes, funcionariosRes, transacoesRes, materiaisRes] = await Promise.all([
+        supabase.from("obras").select("*", { count: 'exact' }).eq("user_id", user.id),
+        supabase.from("funcionarios").select("*", { count: 'exact' }).eq("user_id", user.id).eq("status", "Ativo"),
+        supabase.from("transacoes").select("valor, tipo").eq("user_id", user.id),
+        supabase.from("materiais").select("*", { count: 'exact' }).eq("user_id", user.id).eq("status", "Pendente")
+      ]);
+
+      const receitas = transacoesRes.data?.filter(t => t.tipo === 'receita').reduce((sum, t) => sum + t.valor, 0) || 0;
+
+      setStats({
+        obras: obrasRes.count || 0,
+        funcionarios: funcionariosRes.count || 0,
+        receita: receitas,
+        materiaisPendentes: materiaisRes.count || 0
+      });
+    } catch (error) {
+      console.error("Erro ao buscar estatísticas:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleViewSchedule = () => {
     navigate('/cronograma');
@@ -95,34 +87,34 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Obras Ativas"
-          value="12"
-          subtitle="3 finalizando este mês"
+          value={loading ? "..." : stats.obras.toString()}
+          subtitle={`${stats.obras} obras cadastradas`}
           icon={<Building2 className="w-6 h-6" />}
-          trend={{ value: "+2", isPositive: true }}
+          trend={{ value: "+0", isPositive: true }}
           color="navy"
         />
         <StatsCard
           title="Funcionários"
-          value="45"
-          subtitle="38 ativos hoje"
+          value={loading ? "..." : stats.funcionarios.toString()}
+          subtitle={`${stats.funcionarios} ativos`}
           icon={<Users className="w-6 h-6" />}
-          trend={{ value: "+5", isPositive: true }}
+          trend={{ value: "+0", isPositive: true }}
           color="blue"
         />
         <StatsCard
-          title="Receita Mensal"
-          value="R$ 58.400"
-          subtitle="Janeiro 2024"
+          title="Receita Total"
+          value={loading ? "..." : `R$ ${stats.receita.toLocaleString('pt-BR')}`}
+          subtitle="Receitas registradas"
           icon={<TrendingUp className="w-6 h-6" />}
-          trend={{ value: "+12%", isPositive: true }}
+          trend={{ value: "+0%", isPositive: true }}
           color="green"
         />
         <StatsCard
           title="Materiais Pendentes"
-          value="8"
-          subtitle="R$ 15.200 em compras"
+          value={loading ? "..." : stats.materiaisPendentes.toString()}
+          subtitle={`${stats.materiaisPendentes} para comprar`}
           icon={<Package className="w-6 h-6" />}
-          trend={{ value: "-3", isPositive: true }}
+          trend={{ value: "+0", isPositive: true }}
           color="orange"
         />
       </div>
@@ -134,11 +126,11 @@ const Dashboard = () => {
           <RecentWorks />
         </div>
 
-        {/* Upcoming Tasks */}
+        {/* Quick Tasks */}
         <div className="lg:col-span-1">
           <Card className="p-6 card-shadow-lg border-0">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-navy">Próximas Tarefas</h3>
+              <h3 className="text-lg font-semibold text-navy">Próximas Ações</h3>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -150,26 +142,60 @@ const Dashboard = () => {
             </div>
 
             <div className="space-y-3">
-              {upcomingTasks.map((task) => (
-                <div key={task.id} className="p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-start gap-3">
-                    <div className={`p-1.5 rounded-lg ${getPriorityColor(task.priority)}`}>
-                      {getTypeIcon(task.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-navy text-sm leading-tight">{task.title}</p>
-                      <p className="text-xs text-gray-500 mt-1">{task.date}</p>
-                    </div>
+              <div className="p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 border-blue-200">
+                    <Building2 className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-navy text-sm leading-tight">Cadastrar nova obra</p>
+                    <p className="text-xs text-gray-500 mt-1">Adicione obras ao sistema</p>
                   </div>
                 </div>
-              ))}
+              </div>
+
+              <div className="p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="p-1.5 rounded-lg bg-green-50 text-green-600 border-green-200">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-navy text-sm leading-tight">Adicionar funcionários</p>
+                    <p className="text-xs text-gray-500 mt-1">Monte sua equipe</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="p-1.5 rounded-lg bg-yellow-50 text-yellow-600 border-yellow-200">
+                    <Package className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-navy text-sm leading-tight">Controlar materiais</p>
+                    <p className="text-xs text-gray-500 mt-1">Gerencie seu estoque</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start gap-3">
+                  <div className="p-1.5 rounded-lg bg-red-50 text-red-600 border-red-200">
+                    <DollarSign className="w-4 h-4" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-navy text-sm leading-tight">Registrar transações</p>
+                    <p className="text-xs text-gray-500 mt-1">Controle financeiro</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <Button 
               className="w-full mt-4 bg-secondary hover:bg-secondary/90 text-white"
               onClick={handleAddTask}
             >
-              Adicionar Tarefa
+              Ver Cronograma
             </Button>
           </Card>
         </div>
