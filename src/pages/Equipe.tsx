@@ -1,10 +1,12 @@
-
 import { Users, Plus, Phone, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 
 const Equipe = () => {
+  const navigate = useNavigate();
+
   const funcionarios = [
     {
       id: 1,
@@ -48,6 +50,11 @@ const Equipe = () => {
     }
   };
 
+  const handleAddEmployee = () => {
+    // For now, just show an alert - you can implement a modal or form later
+    alert("Funcionalidade de adicionar funcionário será implementada em breve!");
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -55,7 +62,10 @@ const Equipe = () => {
           <h1 className="text-3xl font-bold text-navy">Equipe</h1>
           <p className="text-gray-600 mt-1">Gerencie sua equipe de trabalho</p>
         </div>
-        <Button className="bg-secondary hover:bg-secondary/90">
+        <Button 
+          className="bg-secondary hover:bg-secondary/90"
+          onClick={handleAddEmployee}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Novo Funcionário
         </Button>

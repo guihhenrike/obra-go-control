@@ -1,8 +1,8 @@
-
 import { Building2, Calendar, Users, DollarSign } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const recentWorks = [
   {
@@ -58,11 +58,22 @@ const getProgressColor = (progress: number) => {
 };
 
 export function RecentWorks() {
+  const navigate = useNavigate();
+
+  const handleViewAll = () => {
+    navigate('/obras');
+  };
+
   return (
     <Card className="p-6 card-shadow-lg border-0">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-navy">Obras Recentes</h3>
-        <Button variant="outline" size="sm" className="text-navy border-navy hover:bg-navy hover:text-white">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="text-navy border-navy hover:bg-navy hover:text-white"
+          onClick={handleViewAll}
+        >
           Ver Todas
         </Button>
       </div>

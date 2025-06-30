@@ -1,10 +1,12 @@
-
 import { Building2, Plus, Calendar, DollarSign, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 
 const Obras = () => {
+  const navigate = useNavigate();
+
   const obras = [
     {
       id: 1,
@@ -43,6 +45,10 @@ const Obras = () => {
     }
   };
 
+  const handleAddWork = () => {
+    alert("Funcionalidade de adicionar obra será implementada em breve!");
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -50,7 +56,10 @@ const Obras = () => {
           <h1 className="text-3xl font-bold text-navy">Obras</h1>
           <p className="text-gray-600 mt-1">Gerencie todas as suas obras ativas</p>
         </div>
-        <Button className="bg-secondary hover:bg-secondary/90">
+        <Button 
+          className="bg-secondary hover:bg-secondary/90"
+          onClick={handleAddWork}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Nova Obra
         </Button>

@@ -1,10 +1,10 @@
-
 import { Building2, Users, Package, DollarSign, Calendar, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentWorks } from "@/components/dashboard/RecentWorks";
 import { FinancialChart } from "@/components/dashboard/FinancialChart";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const upcomingTasks = [
   {
@@ -57,6 +57,32 @@ const getTypeIcon = (type: string) => {
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+
+  const handleViewSchedule = () => {
+    navigate('/cronograma');
+  };
+
+  const handleAddTask = () => {
+    navigate('/cronograma');
+  };
+
+  const handleNewWork = () => {
+    navigate('/obras');
+  };
+
+  const handleAddEmployee = () => {
+    navigate('/equipe');
+  };
+
+  const handleBuyMaterial = () => {
+    navigate('/materiais');
+  };
+
+  const handleNewBudget = () => {
+    navigate('/orcamentos');
+  };
+
   return (
     <div className="p-6 space-y-6 bg-light-gray min-h-screen">
       {/* Header */}
@@ -113,7 +139,12 @@ const Dashboard = () => {
           <Card className="p-6 card-shadow-lg border-0">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-navy">Próximas Tarefas</h3>
-              <Button variant="outline" size="sm" className="text-navy border-navy hover:bg-navy hover:text-white">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-navy border-navy hover:bg-navy hover:text-white"
+                onClick={handleViewSchedule}
+              >
                 Ver Agenda
               </Button>
             </div>
@@ -134,7 +165,10 @@ const Dashboard = () => {
               ))}
             </div>
 
-            <Button className="w-full mt-4 bg-secondary hover:bg-secondary/90 text-white">
+            <Button 
+              className="w-full mt-4 bg-secondary hover:bg-secondary/90 text-white"
+              onClick={handleAddTask}
+            >
               Adicionar Tarefa
             </Button>
           </Card>
@@ -148,19 +182,31 @@ const Dashboard = () => {
       <Card className="p-6 card-shadow-lg border-0">
         <h3 className="text-lg font-semibold text-navy mb-4">Ações Rápidas</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Button className="h-16 bg-navy hover:bg-navy/90 text-white flex-col gap-2">
+          <Button 
+            className="h-16 bg-navy hover:bg-navy/90 text-white flex-col gap-2"
+            onClick={handleNewWork}
+          >
             <Building2 className="w-5 h-5" />
             Nova Obra
           </Button>
-          <Button className="h-16 bg-secondary hover:bg-secondary/90 text-white flex-col gap-2">
+          <Button 
+            className="h-16 bg-secondary hover:bg-secondary/90 text-white flex-col gap-2"
+            onClick={handleAddEmployee}
+          >
             <Users className="w-5 h-5" />
             Add Funcionário
           </Button>
-          <Button className="h-16 bg-light-blue hover:bg-light-blue/90 text-white flex-col gap-2">
+          <Button 
+            className="h-16 bg-light-blue hover:bg-light-blue/90 text-white flex-col gap-2"
+            onClick={handleBuyMaterial}
+          >
             <Package className="w-5 h-5" />
             Comprar Material
           </Button>
-          <Button className="h-16 bg-green-500 hover:bg-green-600 text-white flex-col gap-2">
+          <Button 
+            className="h-16 bg-green-500 hover:bg-green-600 text-white flex-col gap-2"
+            onClick={handleNewBudget}
+          >
             <DollarSign className="w-5 h-5" />
             Novo Orçamento
           </Button>

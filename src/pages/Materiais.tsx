@@ -1,10 +1,12 @@
-
 import { Package, Plus, ShoppingCart, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 
 const Materiais = () => {
+  const navigate = useNavigate();
+
   const materiais = [
     {
       id: 1,
@@ -63,6 +65,10 @@ const Materiais = () => {
     }
   };
 
+  const handleAddMaterial = () => {
+    alert("Funcionalidade de adicionar material será implementada em breve!");
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -70,7 +76,10 @@ const Materiais = () => {
           <h1 className="text-3xl font-bold text-navy">Materiais</h1>
           <p className="text-gray-600 mt-1">Controle de estoque e compras</p>
         </div>
-        <Button className="bg-secondary hover:bg-secondary/90">
+        <Button 
+          className="bg-secondary hover:bg-secondary/90"
+          onClick={handleAddMaterial}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Novo Material
         </Button>
