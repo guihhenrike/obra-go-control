@@ -1,12 +1,24 @@
-
 import { Card } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+interface MonthlyData {
+  month: string;
+  receita: number;
+  gastos: number;
+  lucro: number;
+}
+
+interface ExpenseData {
+  name: string;
+  value: number;
+  color: string;
+}
+
 export function FinancialChart() {
-  const [monthlyData, setMonthlyData] = useState([]);
-  const [expenseData, setExpenseData] = useState([]);
+  const [monthlyData, setMonthlyData] = useState<MonthlyData[]>([]);
+  const [expenseData, setExpenseData] = useState<ExpenseData[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,8 +38,8 @@ export function FinancialChart() {
         .gte("data", new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
       // Processar dados mensais
-      const monthsData = {};
-      const categoryData = {};
+      const monthsData: Record<string, MonthlyData> = {};
+      const categoryData: Record<string, number> = {};
       
       transacoes?.forEach(transacao => {
         const date = new Date(transacao.data);
@@ -37,16 +49,18 @@ export function FinancialChart() {
           monthsData[monthKey] = { month: monthKey, receita: 0, gastos: 0, lucro: 0 };
         }
 
+        const valor = Number(transacao.valor);
+
         if (transacao.tipo === 'receita') {
-          monthsData[monthKey].receita += transacao.valor;
+          monthsData[monthKey].receita += valor;
         } else {
-          monthsData[monthKey].gastos += transacao.valor;
+          monthsData[monthKey].gastos += valor;
           
           // Agrupar por categoria para o gráfico de pizza
           if (!categoryData[transacao.categoria]) {
             categoryData[transacao.categoria] = 0;
           }
-          categoryData[transacao.categoria] += transacao.valor;
+          categoryData[transacao.categoria] += valor;
         }
         
         monthsData[monthKey].lucro = monthsData[monthKey].receita - monthsData[monthKey].gastos;
@@ -57,7 +71,7 @@ export function FinancialChart() {
       setMonthlyData(monthlyArray);
 
       // Converter categorias para array de gastos
-      const totalGastos = Object.values(categoryData).reduce((sum, value) => sum + value, 0);
+      const totalGastos = Object.values(categoryData).reduce((sum: number, value: number) => sum + value, 0);
       const expenseArray = Object.entries(categoryData).map(([name, value], index) => ({
         name,
         value: totalGastos > 0 ? Math.round((value / totalGastos) * 100) : 0,

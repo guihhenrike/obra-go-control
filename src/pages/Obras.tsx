@@ -1,16 +1,34 @@
 
-import { Building2, Plus, Calendar, DollarSign, Users } from "lucide-react";
+import { Building2, Plus, Calendar, DollarSign, Users, MoreVertical, Check, Clock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovaObraForm } from "@/components/forms/NovaObraForm";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Obras = () => {
   const [obras, setObras] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [obraToDelete, setObraToDelete] = useState<any>(null);
 
   useEffect(() => {
     fetchObras();
@@ -36,6 +54,53 @@ const Obras = () => {
     }
   };
 
+  const updateObraStatus = async (obraId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from("obras")
+        .update({ 
+          status: newStatus,
+          progresso: newStatus === "Concluída" ? 100 : undefined
+        })
+        .eq("id", obraId);
+
+      if (error) throw error;
+      
+      // Atualizar a lista local
+      setObras(prev => prev.map(obra => 
+        obra.id === obraId 
+          ? { ...obra, status: newStatus, progresso: newStatus === "Concluída" ? 100 : obra.progresso }
+          : obra
+      ));
+
+      console.log(`Obra ${newStatus.toLowerCase()} com sucesso!`);
+    } catch (error) {
+      console.error("Erro ao atualizar status da obra:", error);
+      alert("Erro ao atualizar status da obra");
+    }
+  };
+
+  const deleteObra = async (obraId: string) => {
+    try {
+      const { error } = await supabase
+        .from("obras")
+        .delete()
+        .eq("id", obraId);
+
+      if (error) throw error;
+      
+      // Remover da lista local
+      setObras(prev => prev.filter(obra => obra.id !== obraId));
+      
+      console.log("Obra excluída com sucesso!");
+      setDeleteDialogOpen(false);
+      setObraToDelete(null);
+    } catch (error) {
+      console.error("Erro ao excluir obra:", error);
+      alert("Erro ao excluir obra");
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Em Andamento":
@@ -44,6 +109,8 @@ const Obras = () => {
         return "bg-green-100 text-green-800";
       case "Atrasada":
         return "bg-red-100 text-red-800";
+      case "Pendente":
+        return "bg-yellow-100 text-yellow-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -52,6 +119,11 @@ const Obras = () => {
   const handleFormSuccess = () => {
     setShowForm(false);
     fetchObras();
+  };
+
+  const handleDeleteClick = (obra: any) => {
+    setObraToDelete(obra);
+    setDeleteDialogOpen(true);
   };
 
   if (showForm) {
@@ -108,9 +180,45 @@ const Obras = () => {
                     <CardTitle className="text-navy">{obra.nome}</CardTitle>
                     <CardDescription>{obra.endereco}</CardDescription>
                   </div>
-                  <Badge className={getStatusColor(obra.status)}>
-                    {obra.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getStatusColor(obra.status)}>
+                      {obra.status}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {obra.status !== "Concluída" && (
+                          <DropdownMenuItem onClick={() => updateObraStatus(obra.id, "Concluída")}>
+                            <Check className="mr-2 h-4 w-4" />
+                            Concluir Obra
+                          </DropdownMenuItem>
+                        )}
+                        {obra.status !== "Pendente" && (
+                          <DropdownMenuItem onClick={() => updateObraStatus(obra.id, "Pendente")}>
+                            <Clock className="mr-2 h-4 w-4" />
+                            Marcar como Pendente
+                          </DropdownMenuItem>
+                        )}
+                        {obra.status !== "Em Andamento" && (
+                          <DropdownMenuItem onClick={() => updateObraStatus(obra.id, "Em Andamento")}>
+                            <Building2 className="mr-2 h-4 w-4" />
+                            Retomar Obra
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem 
+                          onClick={() => handleDeleteClick(obra)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir Obra
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </CardHeader>
               
@@ -155,6 +263,27 @@ const Obras = () => {
           ))}
         </div>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir a obra "{obraToDelete?.nome}"? 
+              Esta ação não pode ser desfeita e todos os dados relacionados serão perdidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => obraToDelete && deleteObra(obraToDelete.id)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
