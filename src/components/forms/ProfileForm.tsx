@@ -37,33 +37,15 @@ export function ProfileForm() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Primeiro, verificar se existe um perfil na tabela profiles
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (profile) {
-        setFormData({
-          id: profile.id,
-          first_name: profile.first_name || "",
-          last_name: profile.last_name || "",
-          email: user.email || "",
-          phone: profile.phone || "",
-          company: profile.company || ""
-        });
-      } else {
-        // Se não existe perfil, usar dados do user metadata
-        setFormData({
-          id: user.id,
-          first_name: user.user_metadata?.first_name || "",
-          last_name: user.user_metadata?.last_name || "",
-          email: user.email || "",
-          phone: user.user_metadata?.phone || "",
-          company: user.user_metadata?.company || ""
-        });
-      }
+      // Usar dados do user metadata diretamente já que não temos tabela profiles
+      setFormData({
+        id: user.id,
+        first_name: user.user_metadata?.first_name || "",
+        last_name: user.user_metadata?.last_name || "",
+        email: user.email || "",
+        phone: user.user_metadata?.phone || "",
+        company: user.user_metadata?.company || ""
+      });
     } catch (error) {
       console.error("Erro ao carregar perfil:", error);
     }
@@ -76,20 +58,6 @@ export function ProfileForm() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
-
-      // Atualizar ou criar perfil na tabela profiles
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert({
-          id: user.id,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          phone: formData.phone,
-          company: formData.company,
-          updated_at: new Date().toISOString()
-        });
-
-      if (profileError) throw profileError;
 
       // Atualizar user metadata
       const { error: userError } = await supabase.auth.updateUser({
