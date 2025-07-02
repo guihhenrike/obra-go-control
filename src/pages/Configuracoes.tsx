@@ -1,10 +1,10 @@
-
-import { Settings, User, Bell, Shield, Database } from "lucide-react";
+import { Settings, Bell, Shield, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { ProfileForm } from "@/components/forms/ProfileForm";
 
 const Configuracoes = () => {
   return (
@@ -15,42 +15,7 @@ const Configuracoes = () => {
       </div>
 
       <div className="grid gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5" />
-              Perfil do Usuário
-            </CardTitle>
-            <CardDescription>
-              Atualize suas informações pessoais
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="nome">Nome completo</Label>
-                <Input id="nome" defaultValue="João Silva" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue="joao@email.com" />
-              </div>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone</Label>
-                <Input id="telefone" defaultValue="(11) 99999-9999" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="empresa">Empresa</Label>
-                <Input id="empresa" defaultValue="Construtora Silva" />
-              </div>
-            </div>
-            <Button className="bg-secondary hover:bg-secondary/90">
-              Salvar Alterações
-            </Button>
-          </CardContent>
-        </Card>
+        <ProfileForm />
 
         <Card>
           <CardHeader>

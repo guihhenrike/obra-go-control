@@ -6,14 +6,21 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
 
 export function Header() {
   const [user, setUser] = useState<User | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
+      if (user) {
+        fetchNotifications(user.id);
+      }
     };
 
     getUser();
@@ -21,11 +28,86 @@ export function Header() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user ?? null);
+        if (session?.user) {
+          fetchNotifications(session.user.id);
+        }
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const fetchNotifications = async (userId: string) => {
+    try {
+      // Buscar obras com prazo próximo
+      const { data: obrasVencendo, error } = await supabase
+        .from("obras")
+        .select("nome, previsao_fim")
+        .eq("user_id", userId)
+        .gte("previsao_fim", new Date().toISOString().split('T')[0])
+        .lte("previsao_fim", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+
+      if (error) throw error;
+
+      const notifs = obrasVencendo?.map(obra => ({
+        id: `obra-${obra.nome}`,
+        message: `Obra "${obra.nome}" tem prazo próximo: ${new Date(obra.previsao_fim).toLocaleDateString('pt-BR')}`,
+        type: 'warning'
+      })) || [];
+
+      setNotifications(notifs);
+    } catch (error) {
+      console.error("Erro ao buscar notificações:", error);
+    }
+  };
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchTerm.trim()) return;
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Buscar em obras, funcionários e materiais
+      const [obrasResult, funcionariosResult, materiaisResult] = await Promise.all([
+        supabase
+          .from("obras")
+          .select("*")
+          .eq("user_id", user.id)
+          .ilike("nome", `%${searchTerm}%`),
+        supabase
+          .from("funcionarios")
+          .select("*")
+          .eq("user_id", user.id)
+          .ilike("nome", `%${searchTerm}%`),
+        supabase
+          .from("materiais")
+          .select("*")
+          .eq("user_id", user.id)
+          .ilike("nome", `%${searchTerm}%`)
+      ]);
+
+      console.log("Resultados da pesquisa:", {
+        obras: obrasResult.data,
+        funcionarios: funcionariosResult.data,
+        materiais: materiaisResult.data
+      });
+
+      // Redirecionar para a primeira página com resultados
+      if (obrasResult.data && obrasResult.data.length > 0) {
+        navigate("/obras");
+      } else if (funcionariosResult.data && funcionariosResult.data.length > 0) {
+        navigate("/equipe");
+      } else if (materiaisResult.data && materiaisResult.data.length > 0) {
+        navigate("/materiais");
+      } else {
+        alert("Nenhum resultado encontrado para: " + searchTerm);
+      }
+    } catch (error) {
+      console.error("Erro na pesquisa:", error);
+    }
+  };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -67,23 +149,40 @@ export function Header() {
       <div className="flex items-center gap-4">
         <SidebarTrigger className="text-navy hover:bg-light-gray" />
         <div className="hidden md:block">
-          <div className="relative">
+          <form onSubmit={handleSearch} className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input 
-              placeholder="Buscar obras, funcionários..." 
+              placeholder="Buscar obras, funcionários, materiais..." 
               className="pl-10 w-96 bg-light-gray border-0 focus:ring-2 focus:ring-navy"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
-          </div>
+          </form>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" className="relative text-navy hover:bg-light-gray">
-          <Bell className="w-5 h-5" />
-          <span className="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full text-[10px] flex items-center justify-center text-white">
-            3
-          </span>
-        </Button>
+        <div className="relative">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="relative text-navy hover:bg-light-gray"
+            onClick={() => {
+              if (notifications.length > 0) {
+                alert(notifications.map(n => n.message).join('\n'));
+              } else {
+                alert('Nenhuma notificação no momento');
+              }
+            }}
+          >
+            <Bell className="w-5 h-5" />
+            {notifications.length > 0 && (
+              <span className="absolute -top-1 -right-1 w-3 h-3 bg-secondary rounded-full text-[10px] flex items-center justify-center text-white">
+                {notifications.length}
+              </span>
+            )}
+          </Button>
+        </div>
 
         <div className="h-8 w-px bg-gray-200" />
 

@@ -108,7 +108,7 @@ export function NovoMaterialForm({ onSuccess, onCancel }: NovoMaterialFormProps)
                 <SelectValue placeholder="Selecionar obra" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Nenhuma obra específica</SelectItem>
+                <SelectItem value="none">Nenhuma obra específica</SelectItem>
                 {obras.map((obra) => (
                   <SelectItem key={obra.id} value={obra.id}>
                     {obra.nome}

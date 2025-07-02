@@ -161,7 +161,7 @@ export function NovaTransacaoForm({ onSuccess, onCancel }: NovaTransacaoFormProp
                   <SelectValue placeholder="Selecionar obra" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Não associar a uma obra</SelectItem>
+                  <SelectItem value="none">Não associar a uma obra</SelectItem>
                   {obras.map((obra) => (
                     <SelectItem key={obra.id} value={obra.id}>
                       {obra.nome}
