@@ -1,6 +1,8 @@
 
 import { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronRight } from "lucide-react";
 
 interface StatsCardProps {
   title: string;
@@ -12,6 +14,7 @@ interface StatsCardProps {
     isPositive: boolean;
   };
   color?: "navy" | "orange" | "blue" | "green" | "red";
+  onClick?: () => void;
 }
 
 export function StatsCard({ 
@@ -20,7 +23,8 @@ export function StatsCard({
   subtitle, 
   icon, 
   trend, 
-  color = "navy" 
+  color = "navy",
+  onClick
 }: StatsCardProps) {
   const colorClasses = {
     navy: "from-navy to-blue-800",
@@ -31,7 +35,7 @@ export function StatsCard({
   };
 
   return (
-    <Card className="p-6 hover-lift border-0 card-shadow-lg bg-white">
+    <Card className="p-6 hover-lift border-0 card-shadow-lg bg-white relative group">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
@@ -54,6 +58,17 @@ export function StatsCard({
           {icon}
         </div>
       </div>
+      
+      {onClick && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 h-auto"
+          onClick={onClick}
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      )}
     </Card>
   );
 }

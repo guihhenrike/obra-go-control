@@ -1,16 +1,30 @@
 
-import { Users, Plus, Phone, Mail } from "lucide-react";
+import { Users, Plus, Phone, Mail, Edit, Trash2, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovoFuncionarioForm } from "@/components/forms/NovoFuncionarioForm";
+import { EditarFuncionarioForm } from "@/components/forms/EditarFuncionarioForm";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Equipe = () => {
   const [funcionarios, setFuncionarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingFuncionario, setEditingFuncionario] = useState<any>(null);
 
   useEffect(() => {
     fetchFuncionarios();
@@ -51,7 +65,42 @@ const Equipe = () => {
 
   const handleFormSuccess = () => {
     setShowForm(false);
+    setEditingFuncionario(null);
     fetchFuncionarios();
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("funcionarios")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      
+      toast.success("Funcionário excluído com sucesso!");
+      fetchFuncionarios();
+    } catch (error) {
+      console.error("Erro ao excluir funcionário:", error);
+      toast.error("Erro ao excluir funcionário");
+    }
+  };
+
+  const handleDeactivate = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("funcionarios")
+        .update({ status: "Inativo" })
+        .eq("id", id);
+
+      if (error) throw error;
+      
+      toast.success("Funcionário desativado com sucesso!");
+      fetchFuncionarios();
+    } catch (error) {
+      console.error("Erro ao desativar funcionário:", error);
+      toast.error("Erro ao desativar funcionário");
+    }
   };
 
   if (showForm) {
@@ -60,6 +109,18 @@ const Equipe = () => {
         <NovoFuncionarioForm 
           onSuccess={handleFormSuccess}
           onCancel={() => setShowForm(false)}
+        />
+      </div>
+    );
+  }
+
+  if (editingFuncionario) {
+    return (
+      <div className="p-6">
+        <EditarFuncionarioForm 
+          funcionario={editingFuncionario}
+          onSuccess={handleFormSuccess}
+          onCancel={() => setEditingFuncionario(null)}
         />
       </div>
     );
@@ -127,11 +188,72 @@ const Equipe = () => {
                 </div>
                 
                 <div className="pt-2 border-t">
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center mb-3">
                     <span className="text-sm font-medium">Diária:</span>
                     <span className="text-lg font-bold text-secondary">
                       R$ {funcionario.diaria}
                     </span>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingFuncionario(funcionario)}
+                      className="flex-1"
+                    >
+                      <Edit className="w-4 h-4 mr-1" />
+                      Editar
+                    </Button>
+                    
+                    {funcionario.status === "Ativo" && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="outline" className="text-yellow-600 hover:text-yellow-700">
+                            <UserX className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Desativar funcionário</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Tem certeza que deseja desativar {funcionario.nome}? Ele será marcado como inativo.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeactivate(funcionario.id)}>
+                              Desativar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                    
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir funcionário</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir {funcionario.nome}? Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleDelete(funcionario.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>

@@ -1,4 +1,3 @@
-
 import { Building2, Users, Package, DollarSign, Calendar, TrendingUp, AlertTriangle, CheckCircle } from "lucide-react";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { RecentWorks } from "@/components/dashboard/RecentWorks";
@@ -92,6 +91,7 @@ const Dashboard = () => {
           icon={<Building2 className="w-6 h-6" />}
           trend={{ value: "+0", isPositive: true }}
           color="navy"
+          onClick={() => navigate('/obras')}
         />
         <StatsCard
           title="Funcionários"
@@ -100,6 +100,7 @@ const Dashboard = () => {
           icon={<Users className="w-6 h-6" />}
           trend={{ value: "+0", isPositive: true }}
           color="blue"
+          onClick={() => navigate('/equipe')}
         />
         <StatsCard
           title="Receita Total"
@@ -108,6 +109,7 @@ const Dashboard = () => {
           icon={<TrendingUp className="w-6 h-6" />}
           trend={{ value: "+0%", isPositive: true }}
           color="green"
+          onClick={() => navigate('/financeiro')}
         />
         <StatsCard
           title="Materiais Pendentes"
@@ -116,6 +118,7 @@ const Dashboard = () => {
           icon={<Package className="w-6 h-6" />}
           trend={{ value: "+0", isPositive: true }}
           color="orange"
+          onClick={() => navigate('/materiais')}
         />
       </div>
 

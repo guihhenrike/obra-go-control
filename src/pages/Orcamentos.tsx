@@ -1,4 +1,5 @@
-import { FileText, Plus, Send, Eye, Download } from "lucide-react";
+
+import { FileText, Plus, Send, Eye, Download, Trash2, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +7,18 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovoOrcamentoForm } from "@/components/forms/NovoOrcamentoForm";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Orcamentos = () => {
   const [orcamentos, setOrcamentos] = useState<any[]>([]);
@@ -94,16 +107,85 @@ const Orcamentos = () => {
     fetchOrcamentos();
   };
 
-  const handleViewBudget = (id: string) => {
-    alert(`Visualizar orçamento ${id} - funcionalidade será implementada em breve!`);
+  const handleViewBudget = (orcamento: any) => {
+    // Criar uma janela modal ou nova página para visualizar o orçamento
+    const content = `
+      ORÇAMENTO: ${orcamento.numero}
+      Cliente: ${orcamento.cliente}
+      Obra: ${orcamento.obra}
+      Valor: R$ ${orcamento.valor.toLocaleString('pt-BR')}
+      Data: ${new Date(orcamento.data_criacao).toLocaleDateString('pt-BR')}
+      Validade: ${new Date(orcamento.validade).toLocaleDateString('pt-BR')}
+      Status: ${orcamento.status}
+    `;
+    
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(`
+        <html>
+          <head><title>Orçamento ${orcamento.numero}</title></head>
+          <body style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Orçamento ${orcamento.numero}</h2>
+            <pre>${content}</pre>
+          </body>
+        </html>
+      `);
+    }
   };
 
-  const handleDownloadBudget = (id: string) => {
-    alert(`Download orçamento ${id} - funcionalidade será implementada em breve!`);
+  const handleDownloadBudget = (orcamento: any) => {
+    const content = `
+ORÇAMENTO: ${orcamento.numero}
+Cliente: ${orcamento.cliente}
+Obra: ${orcamento.obra}
+Valor: R$ ${orcamento.valor.toLocaleString('pt-BR')}
+Data: ${new Date(orcamento.data_criacao).toLocaleDateString('pt-BR')}
+Validade: ${new Date(orcamento.validade).toLocaleDateString('pt-BR')}
+Status: ${orcamento.status}
+    `;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `orcamento-${orcamento.numero}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    
+    toast.success("Orçamento baixado com sucesso!");
   };
 
-  const handleSendBudget = (id: string) => {
-    alert(`Enviar orçamento ${id} - funcionalidade será implementada em breve!`);
+  const handleShareBudget = (orcamento: any) => {
+    const text = `Orçamento ${orcamento.numero} - Cliente: ${orcamento.cliente} - Valor: R$ ${orcamento.valor.toLocaleString('pt-BR')}`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: `Orçamento ${orcamento.numero}`,
+        text: text,
+      });
+    } else {
+      navigator.clipboard.writeText(text);
+      toast.success("Informações do orçamento copiadas para a área de transferência!");
+    }
+  };
+
+  const handleDeleteBudget = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("orcamentos")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      
+      toast.success("Orçamento excluído com sucesso!");
+      fetchOrcamentos();
+    } catch (error) {
+      console.error("Erro ao excluir orçamento:", error);
+      toast.error("Erro ao excluir orçamento");
+    }
   };
 
   if (showForm) {
@@ -205,28 +287,60 @@ const Orcamentos = () => {
                       {new Date(orcamento.validade).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 flex-wrap">
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => handleViewBudget(orcamento.id)}
+                      onClick={() => handleViewBudget(orcamento)}
+                      title="Visualizar"
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => handleDownloadBudget(orcamento.id)}
+                      onClick={() => handleDownloadBudget(orcamento)}
+                      title="Baixar"
                     >
                       <Download className="w-4 h-4" />
                     </Button>
                     <Button 
                       size="sm" 
                       variant="outline"
-                      onClick={() => handleSendBudget(orcamento.id)}
+                      onClick={() => handleShareBudget(orcamento)}
+                      title="Compartilhar"
                     >
-                      <Send className="w-4 h-4" />
+                      <Share className="w-4 h-4" />
                     </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          className="text-red-600 hover:text-red-700"
+                          title="Excluir"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Excluir orçamento</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja excluir o orçamento {orcamento.numero}? Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={() => handleDeleteBudget(orcamento.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Excluir
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>
