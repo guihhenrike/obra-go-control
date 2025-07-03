@@ -1,4 +1,3 @@
-
 import { FileText, Plus, Send, Eye, Download, Trash2, Share } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +6,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovoOrcamentoForm } from "@/components/forms/NovoOrcamentoForm";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import { OrcamentoFilters } from "@/components/filters/OrcamentoFilters";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -27,6 +27,8 @@ const Orcamentos = () => {
   const [showForm, setShowForm] = useState(false);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchOrcamentos();
@@ -34,11 +36,12 @@ const Orcamentos = () => {
 
   useEffect(() => {
     filterOrcamentos();
-  }, [orcamentos, startDate, endDate]);
+  }, [orcamentos, startDate, endDate, statusFilter, searchTerm]);
 
   const filterOrcamentos = () => {
     let filtered = [...orcamentos];
 
+    // Filtro por data
     if (startDate || endDate) {
       filtered = filtered.filter(orcamento => {
         const orcamentoDate = new Date(orcamento.data_criacao);
@@ -57,6 +60,18 @@ const Orcamentos = () => {
         
         return true;
       });
+    }
+
+    // Filtro por status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(orcamento => orcamento.status === statusFilter);
+    }
+
+    // Filtro por busca
+    if (searchTerm) {
+      filtered = filtered.filter(orcamento => 
+        orcamento.numero.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
     setFilteredOrcamentos(filtered);
@@ -216,6 +231,13 @@ Status: ${orcamento.status}
           </Button>
         </div>
 
+        <OrcamentoFilters
+          statusFilter={statusFilter}
+          searchTerm={searchTerm}
+          onStatusFilterChange={setStatusFilter}
+          onSearchTermChange={setSearchTerm}
+        />
+
         <div className="flex items-center gap-4">
           <DateRangeFilter 
             onDateRangeChange={handleDateRangeChange}
@@ -236,10 +258,10 @@ Status: ${orcamento.status}
         <div className="text-center py-8">
           <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-700 mb-2">
-            {orcamentos.length === 0 ? "Nenhum orçamento criado" : "Nenhum orçamento encontrado no período"}
+            {orcamentos.length === 0 ? "Nenhum orçamento criado" : "Nenhum orçamento encontrado"}
           </h3>
           <p className="text-gray-500 mb-4">
-            {orcamentos.length === 0 ? "Comece criando seu primeiro orçamento" : "Tente ajustar o filtro de data"}
+            {orcamentos.length === 0 ? "Comece criando seu primeiro orçamento" : "Tente ajustar os filtros"}
           </p>
           {orcamentos.length === 0 && (
             <Button 

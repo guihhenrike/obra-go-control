@@ -1,10 +1,11 @@
-import { Building2, Plus, Calendar, DollarSign, Users, MoreVertical, Check, Clock, Trash2 } from "lucide-react";
+import { Building2, Plus, Calendar, DollarSign, Users, MoreVertical, Check, Clock, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovaObraForm } from "@/components/forms/NovaObraForm";
+import { EditarObraForm } from "@/components/forms/EditarObraForm";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import {
   DropdownMenu,
@@ -28,6 +29,8 @@ const Obras = () => {
   const [filteredObras, setFilteredObras] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingObra, setEditingObra] = useState<any>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [obraToDelete, setObraToDelete] = useState<any>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
@@ -156,7 +159,14 @@ const Obras = () => {
 
   const handleFormSuccess = () => {
     setShowForm(false);
+    setShowEditForm(false);
+    setEditingObra(null);
     fetchObras();
+  };
+
+  const handleEditObra = (obra: any) => {
+    setEditingObra(obra);
+    setShowEditForm(true);
   };
 
   const handleDeleteClick = (obra: any) => {
@@ -170,6 +180,21 @@ const Obras = () => {
         <NovaObraForm 
           onSuccess={handleFormSuccess}
           onCancel={() => setShowForm(false)}
+        />
+      </div>
+    );
+  }
+
+  if (showEditForm && editingObra) {
+    return (
+      <div className="p-6">
+        <EditarObraForm 
+          obra={editingObra}
+          onSuccess={handleFormSuccess}
+          onCancel={() => {
+            setShowEditForm(false);
+            setEditingObra(null);
+          }}
         />
       </div>
     );
@@ -241,6 +266,14 @@ const Obras = () => {
                     <Badge className={getStatusColor(obra.status)}>
                       {obra.status}
                     </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditObra(obra)}
+                      title="Editar obra"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
