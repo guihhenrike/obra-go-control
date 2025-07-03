@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { 
   Building2, 
@@ -27,6 +26,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 const mainMenuItems = [
   { 
@@ -93,6 +93,33 @@ export function AppSidebar() {
   const location = useLocation();
   const currentPath = location.pathname;
   const collapsed = state === "collapsed";
+  const [userProfile, setUserProfile] = useState<any>(null);
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error("Erro ao buscar perfil:", error);
+        return;
+      }
+
+      setUserProfile(data);
+    } catch (error) {
+      console.error("Erro ao buscar perfil do usuário:", error);
+    }
+  };
 
   const isActive = (path: string) => {
     if (path === "/") {
@@ -194,8 +221,12 @@ export function AppSidebar() {
                 <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-2">
                   <Users className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-white font-medium text-sm">João Silva</p>
-                <p className="text-white/60 text-xs">Mestre de Obras</p>
+                <p className="text-white font-medium text-sm">
+                  {userProfile?.full_name || "Usuário"}
+                </p>
+                <p className="text-white/60 text-xs">
+                  {userProfile?.profession || "Mestre de Obras"}
+                </p>
               </div>
               <Button 
                 variant="ghost" 

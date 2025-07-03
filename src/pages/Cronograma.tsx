@@ -1,20 +1,64 @@
-
-import { Calendar, Clock, CheckCircle, AlertCircle, Plus } from "lucide-react";
+import { Calendar, Clock, CheckCircle, AlertCircle, Plus, MoreVertical } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovaEtapaForm } from "@/components/forms/NovaEtapaForm";
+import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Cronograma = () => {
   const [etapas, setEtapas] = useState<any[]>([]);
+  const [filteredEtapas, setFilteredEtapas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchEtapas();
   }, []);
+
+  useEffect(() => {
+    filterEtapas();
+  }, [etapas, startDate, endDate]);
+
+  const filterEtapas = () => {
+    let filtered = [...etapas];
+
+    if (startDate || endDate) {
+      filtered = filtered.filter(etapa => {
+        const etapaDate = new Date(etapa.data_inicio);
+        
+        if (startDate && endDate) {
+          return etapaDate >= startDate && etapaDate <= endDate;
+        }
+        
+        if (startDate) {
+          return etapaDate >= startDate;
+        }
+        
+        if (endDate) {
+          return etapaDate <= endDate;
+        }
+        
+        return true;
+      });
+    }
+
+    setFilteredEtapas(filtered);
+  };
+
+  const handleDateRangeChange = (start: Date | null, end: Date | null) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
 
   const fetchEtapas = async () => {
     try {
@@ -36,6 +80,31 @@ const Cronograma = () => {
       console.error("Erro ao buscar etapas:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateEtapaStatus = async (etapaId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from("etapas")
+        .update({ 
+          status: newStatus,
+          progresso: newStatus === "Concluída" ? 100 : undefined
+        })
+        .eq("id", etapaId);
+
+      if (error) throw error;
+      
+      setEtapas(prev => prev.map(etapa => 
+        etapa.id === etapaId 
+          ? { ...etapa, status: newStatus, progresso: newStatus === "Concluída" ? 100 : etapa.progresso }
+          : etapa
+      ));
+
+      console.log(`Etapa ${newStatus.toLowerCase()} com sucesso!`);
+    } catch (error) {
+      console.error("Erro ao atualizar status da etapa:", error);
+      alert("Erro ao atualizar status da etapa");
     }
   };
 
@@ -85,40 +154,59 @@ const Cronograma = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-navy">Cronograma</h1>
-          <p className="text-gray-600 mt-1">Planejamento e acompanhamento das etapas</p>
+      <div className="flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-navy">Cronograma</h1>
+            <p className="text-gray-600 mt-1">Planejamento e acompanhamento das etapas</p>
+          </div>
+          <Button 
+            className="bg-secondary hover:bg-secondary/90"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Etapa
+          </Button>
         </div>
-        <Button 
-          className="bg-secondary hover:bg-secondary/90"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Etapa
-        </Button>
+
+        <div className="flex items-center gap-4">
+          <DateRangeFilter 
+            onDateRangeChange={handleDateRangeChange}
+            startDate={startDate}
+            endDate={endDate}
+          />
+          <div className="text-sm text-gray-500">
+            {filteredEtapas.length} de {etapas.length} etapas
+          </div>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-8">
           <p className="text-gray-500">Carregando etapas...</p>
         </div>
-      ) : etapas.length === 0 ? (
+      ) : filteredEtapas.length === 0 ? (
         <div className="text-center py-8">
           <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhuma etapa cadastrada</h3>
-          <p className="text-gray-500 mb-4">Comece criando etapas para suas obras</p>
-          <Button 
-            className="bg-secondary hover:bg-secondary/90"
-            onClick={() => setShowForm(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Criar Primeira Etapa
-          </Button>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            {etapas.length === 0 ? "Nenhuma etapa cadastrada" : "Nenhuma etapa encontrada no período"}
+          </h3>
+          <p className="text-gray-500 mb-4">
+            {etapas.length === 0 ? "Comece criando etapas para suas obras" : "Tente ajustar o filtro de data"}
+          </p>
+          {etapas.length === 0 && (
+            <Button 
+              className="bg-secondary hover:bg-secondary/90"
+              onClick={() => setShowForm(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Primeira Etapa
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-6">
-          {etapas.map((etapa) => (
+          {filteredEtapas.map((etapa) => (
             <Card key={etapa.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -128,10 +216,39 @@ const Cronograma = () => {
                       {etapa.obras ? etapa.obras.nome : "Obra não especificada"}
                     </CardDescription>
                   </div>
-                  <Badge className={`${getStatusColor(etapa.status)} flex items-center gap-1`}>
-                    {getStatusIcon(etapa.status)}
-                    {etapa.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className={`${getStatusColor(etapa.status)} flex items-center gap-1`}>
+                      {getStatusIcon(etapa.status)}
+                      {etapa.status}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {etapa.status !== "Concluída" && (
+                          <DropdownMenuItem onClick={() => updateEtapaStatus(etapa.id, "Concluída")}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Concluir Etapa
+                          </DropdownMenuItem>
+                        )}
+                        {etapa.status !== "Pendente" && (
+                          <DropdownMenuItem onClick={() => updateEtapaStatus(etapa.id, "Pendente")}>
+                            <Clock className="mr-2 h-4 w-4" />
+                            Marcar como Pendente
+                          </DropdownMenuItem>
+                        )}
+                        {etapa.status !== "Em Andamento" && (
+                          <DropdownMenuItem onClick={() => updateEtapaStatus(etapa.id, "Em Andamento")}>
+                            <Calendar className="mr-2 h-4 w-4" />
+                            Retomar Etapa
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </CardHeader>
               

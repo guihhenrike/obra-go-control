@@ -1,4 +1,3 @@
-
 import { Building2, Plus, Calendar, DollarSign, Users, MoreVertical, Check, Clock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovaObraForm } from "@/components/forms/NovaObraForm";
+import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,14 +25,52 @@ import {
 
 const Obras = () => {
   const [obras, setObras] = useState<any[]>([]);
+  const [filteredObras, setFilteredObras] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [obraToDelete, setObraToDelete] = useState<any>(null);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchObras();
   }, []);
+
+  useEffect(() => {
+    filterObras();
+  }, [obras, startDate, endDate]);
+
+  const filterObras = () => {
+    let filtered = [...obras];
+
+    if (startDate || endDate) {
+      filtered = filtered.filter(obra => {
+        const obraDate = new Date(obra.data_inicio);
+        
+        if (startDate && endDate) {
+          return obraDate >= startDate && obraDate <= endDate;
+        }
+        
+        if (startDate) {
+          return obraDate >= startDate;
+        }
+        
+        if (endDate) {
+          return obraDate <= endDate;
+        }
+        
+        return true;
+      });
+    }
+
+    setFilteredObras(filtered);
+  };
+
+  const handleDateRangeChange = (start: Date | null, end: Date | null) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
 
   const fetchObras = async () => {
     try {
@@ -139,40 +177,59 @@ const Obras = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-navy">Obras</h1>
-          <p className="text-gray-600 mt-1">Gerencie todas as suas obras ativas</p>
+      <div className="flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-navy">Obras</h1>
+            <p className="text-gray-600 mt-1">Gerencie todas as suas obras ativas</p>
+          </div>
+          <Button 
+            className="bg-secondary hover:bg-secondary/90"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Nova Obra
+          </Button>
         </div>
-        <Button 
-          className="bg-secondary hover:bg-secondary/90"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Obra
-        </Button>
+
+        <div className="flex items-center gap-4">
+          <DateRangeFilter 
+            onDateRangeChange={handleDateRangeChange}
+            startDate={startDate}
+            endDate={endDate}
+          />
+          <div className="text-sm text-gray-500">
+            {filteredObras.length} de {obras.length} obras
+          </div>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-8">
           <p className="text-gray-500">Carregando obras...</p>
         </div>
-      ) : obras.length === 0 ? (
+      ) : filteredObras.length === 0 ? (
         <div className="text-center py-8">
           <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhuma obra cadastrada</h3>
-          <p className="text-gray-500 mb-4">Comece criando sua primeira obra</p>
-          <Button 
-            className="bg-secondary hover:bg-secondary/90"
-            onClick={() => setShowForm(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Criar Primeira Obra
-          </Button>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            {obras.length === 0 ? "Nenhuma obra cadastrada" : "Nenhuma obra encontrada no período"}
+          </h3>
+          <p className="text-gray-500 mb-4">
+            {obras.length === 0 ? "Comece criando sua primeira obra" : "Tente ajustar o filtro de data"}
+          </p>
+          {obras.length === 0 && (
+            <Button 
+              className="bg-secondary hover:bg-secondary/90"
+              onClick={() => setShowForm(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Primeira Obra
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-6">
-          {obras.map((obra) => (
+          {filteredObras.map((obra) => (
             <Card key={obra.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start">

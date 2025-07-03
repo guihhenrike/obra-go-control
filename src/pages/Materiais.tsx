@@ -1,4 +1,3 @@
-
 import { Package, Plus, ShoppingCart, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,15 +5,54 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovoMaterialForm } from "@/components/forms/NovoMaterialForm";
+import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 
 const Materiais = () => {
   const [materiais, setMateriais] = useState<any[]>([]);
+  const [filteredMateriais, setFilteredMateriais] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchMateriais();
   }, []);
+
+  useEffect(() => {
+    filterMateriais();
+  }, [materiais, startDate, endDate]);
+
+  const filterMateriais = () => {
+    let filtered = [...materiais];
+
+    if (startDate || endDate) {
+      filtered = filtered.filter(material => {
+        const materialDate = new Date(material.created_at);
+        
+        if (startDate && endDate) {
+          return materialDate >= startDate && materialDate <= endDate;
+        }
+        
+        if (startDate) {
+          return materialDate >= startDate;
+        }
+        
+        if (endDate) {
+          return materialDate <= endDate;
+        }
+        
+        return true;
+      });
+    }
+
+    setFilteredMateriais(filtered);
+  };
+
+  const handleDateRangeChange = (start: Date | null, end: Date | null) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
 
   const fetchMateriais = async () => {
     try {
@@ -85,40 +123,59 @@ const Materiais = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-navy">Materiais</h1>
-          <p className="text-gray-600 mt-1">Controle de estoque e compras</p>
+      <div className="flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-navy">Materiais</h1>
+            <p className="text-gray-600 mt-1">Controle de estoque e compras</p>
+          </div>
+          <Button 
+            className="bg-secondary hover:bg-secondary/90"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Material
+          </Button>
         </div>
-        <Button 
-          className="bg-secondary hover:bg-secondary/90"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Material
-        </Button>
+
+        <div className="flex items-center gap-4">
+          <DateRangeFilter 
+            onDateRangeChange={handleDateRangeChange}
+            startDate={startDate}
+            endDate={endDate}
+          />
+          <div className="text-sm text-gray-500">
+            {filteredMateriais.length} de {materiais.length} materiais
+          </div>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-8">
           <p className="text-gray-500">Carregando materiais...</p>
         </div>
-      ) : materiais.length === 0 ? (
+      ) : filteredMateriais.length === 0 ? (
         <div className="text-center py-8">
           <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhum material cadastrado</h3>
-          <p className="text-gray-500 mb-4">Comece adicionando materiais ao seu estoque</p>
-          <Button 
-            className="bg-secondary hover:bg-secondary/90"
-            onClick={() => setShowForm(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Primeiro Material
-          </Button>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            {materiais.length === 0 ? "Nenhum material cadastrado" : "Nenhum material encontrado no período"}
+          </h3>
+          <p className="text-gray-500 mb-4">
+            {materiais.length === 0 ? "Comece adicionando materiais ao seu estoque" : "Tente ajustar o filtro de data"}
+          </p>
+          {materiais.length === 0 && (
+            <Button 
+              className="bg-secondary hover:bg-secondary/90"
+              onClick={() => setShowForm(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Primeiro Material
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-6">
-          {materiais.map((material) => (
+          {filteredMateriais.map((material) => (
             <Card key={material.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start">

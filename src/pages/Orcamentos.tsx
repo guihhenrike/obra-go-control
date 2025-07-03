@@ -1,4 +1,3 @@
-
 import { FileText, Plus, Send, Eye, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,15 +5,54 @@ import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovoOrcamentoForm } from "@/components/forms/NovoOrcamentoForm";
+import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 
 const Orcamentos = () => {
   const [orcamentos, setOrcamentos] = useState<any[]>([]);
+  const [filteredOrcamentos, setFilteredOrcamentos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchOrcamentos();
   }, []);
+
+  useEffect(() => {
+    filterOrcamentos();
+  }, [orcamentos, startDate, endDate]);
+
+  const filterOrcamentos = () => {
+    let filtered = [...orcamentos];
+
+    if (startDate || endDate) {
+      filtered = filtered.filter(orcamento => {
+        const orcamentoDate = new Date(orcamento.data_criacao);
+        
+        if (startDate && endDate) {
+          return orcamentoDate >= startDate && orcamentoDate <= endDate;
+        }
+        
+        if (startDate) {
+          return orcamentoDate >= startDate;
+        }
+        
+        if (endDate) {
+          return orcamentoDate <= endDate;
+        }
+        
+        return true;
+      });
+    }
+
+    setFilteredOrcamentos(filtered);
+  };
+
+  const handleDateRangeChange = (start: Date | null, end: Date | null) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
 
   const fetchOrcamentos = async () => {
     try {
@@ -81,40 +119,59 @@ const Orcamentos = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-navy">Orçamentos</h1>
-          <p className="text-gray-600 mt-1">Crie e gerencie seus orçamentos</p>
+      <div className="flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-navy">Orçamentos</h1>
+            <p className="text-gray-600 mt-1">Crie e gerencie seus orçamentos</p>
+          </div>
+          <Button 
+            className="bg-secondary hover:bg-secondary/90"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Orçamento
+          </Button>
         </div>
-        <Button 
-          className="bg-secondary hover:bg-secondary/90"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Orçamento
-        </Button>
+
+        <div className="flex items-center gap-4">
+          <DateRangeFilter 
+            onDateRangeChange={handleDateRangeChange}
+            startDate={startDate}
+            endDate={endDate}
+          />
+          <div className="text-sm text-gray-500">
+            {filteredOrcamentos.length} de {orcamentos.length} orçamentos
+          </div>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-8">
           <p className="text-gray-500">Carregando orçamentos...</p>
         </div>
-      ) : orcamentos.length === 0 ? (
+      ) : filteredOrcamentos.length === 0 ? (
         <div className="text-center py-8">
           <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhum orçamento criado</h3>
-          <p className="text-gray-500 mb-4">Comece criando seu primeiro orçamento</p>
-          <Button 
-            className="bg-secondary hover:bg-secondary/90"
-            onClick={() => setShowForm(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Criar Primeiro Orçamento
-          </Button>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            {orcamentos.length === 0 ? "Nenhum orçamento criado" : "Nenhum orçamento encontrado no período"}
+          </h3>
+          <p className="text-gray-500 mb-4">
+            {orcamentos.length === 0 ? "Comece criando seu primeiro orçamento" : "Tente ajustar o filtro de data"}
+          </p>
+          {orcamentos.length === 0 && (
+            <Button 
+              className="bg-secondary hover:bg-secondary/90"
+              onClick={() => setShowForm(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Primeiro Orçamento
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-6">
-          {orcamentos.map((orcamento) => (
+          {filteredOrcamentos.map((orcamento) => (
             <Card key={orcamento.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start">
