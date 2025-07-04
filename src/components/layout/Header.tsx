@@ -1,5 +1,5 @@
 
-import { Bell, Search, LogOut } from "lucide-react";
+import { Bell, Search, LogOut, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -7,12 +7,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
 
 export function Header() {
   const [user, setUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [notifications, setNotifications] = useState<any[]>([]);
   const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     const getUser = async () => {
@@ -114,6 +116,10 @@ export function Header() {
     window.location.href = '/auth';
   };
 
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
   const getUserDisplayName = () => {
     if (!user) return "Usuário";
     
@@ -145,15 +151,15 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 px-6 flex items-center justify-between shadow-sm">
+    <header className="h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 flex items-center justify-between shadow-sm">
       <div className="flex items-center gap-4">
-        <SidebarTrigger className="text-navy hover:bg-light-gray" />
+        <SidebarTrigger className="text-navy dark:text-white hover:bg-light-gray dark:hover:bg-gray-700" />
         <div className="hidden md:block">
           <form onSubmit={handleSearch} className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input 
               placeholder="Buscar obras, funcionários, materiais..." 
-              className="pl-10 w-96 bg-light-gray border-0 focus:ring-2 focus:ring-navy"
+              className="pl-10 w-96 bg-light-gray dark:bg-gray-800 border-0 focus:ring-2 focus:ring-navy dark:focus:ring-blue-400"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -162,11 +168,24 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="text-navy dark:text-white hover:bg-light-gray dark:hover:bg-gray-700"
+          onClick={toggleTheme}
+        >
+          {theme === "dark" ? (
+            <Sun className="w-5 h-5" />
+          ) : (
+            <Moon className="w-5 h-5" />
+          )}
+        </Button>
+
         <div className="relative">
           <Button 
             variant="ghost" 
             size="sm" 
-            className="relative text-navy hover:bg-light-gray"
+            className="relative text-navy dark:text-white hover:bg-light-gray dark:hover:bg-gray-700"
             onClick={() => {
               if (notifications.length > 0) {
                 alert(notifications.map(n => n.message).join('\n'));
@@ -184,15 +203,15 @@ export function Header() {
           </Button>
         </div>
 
-        <div className="h-8 w-px bg-gray-200" />
+        <div className="h-8 w-px bg-gray-200 dark:bg-gray-700" />
 
         <div className="flex items-center gap-3">
           <div 
             className="text-right hidden sm:block cursor-pointer"
             onClick={() => navigate('/configuracoes')}
           >
-            <p className="text-sm font-medium text-navy hover:text-secondary transition-colors">{getUserDisplayName()}</p>
-            <p className="text-xs text-gray-500">Construtor</p>
+            <p className="text-sm font-medium text-navy dark:text-white hover:text-secondary transition-colors">{getUserDisplayName()}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Construtor</p>
           </div>
           <div 
             className="w-10 h-10 bg-gradient-to-br from-navy to-light-blue rounded-full flex items-center justify-center text-white font-semibold cursor-pointer hover:opacity-80 transition-opacity"
@@ -203,7 +222,7 @@ export function Header() {
           <Button 
             variant="ghost" 
             size="sm" 
-            className="text-navy hover:bg-light-gray"
+            className="text-navy dark:text-white hover:bg-light-gray dark:hover:bg-gray-700"
             onClick={handleSignOut}
           >
             <LogOut className="w-4 h-4" />
