@@ -1,23 +1,38 @@
-import { Calendar, Clock, CheckCircle, AlertCircle, Plus, MoreVertical } from "lucide-react";
+
+import { Calendar, Clock, CheckCircle, AlertCircle, Plus, MoreVertical, Edit, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovaEtapaForm } from "@/components/forms/NovaEtapaForm";
+import { EditarEtapaForm } from "@/components/forms/EditarEtapaForm";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import { toast } from "sonner";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Cronograma = () => {
   const [etapas, setEtapas] = useState<any[]>([]);
   const [filteredEtapas, setFilteredEtapas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingEtapa, setEditingEtapa] = useState<any>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
@@ -101,10 +116,27 @@ const Cronograma = () => {
           : etapa
       ));
 
-      console.log(`Etapa ${newStatus.toLowerCase()} com sucesso!`);
+      toast.success(`Etapa ${newStatus.toLowerCase()} com sucesso!`);
     } catch (error) {
       console.error("Erro ao atualizar status da etapa:", error);
-      alert("Erro ao atualizar status da etapa");
+      toast.error("Erro ao atualizar status da etapa");
+    }
+  };
+
+  const handleDeleteEtapa = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("etapas")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      
+      toast.success("Etapa excluída com sucesso!");
+      fetchEtapas();
+    } catch (error) {
+      console.error("Erro ao excluir etapa:", error);
+      toast.error("Erro ao excluir etapa");
     }
   };
 
@@ -138,6 +170,7 @@ const Cronograma = () => {
 
   const handleFormSuccess = () => {
     setShowForm(false);
+    setEditingEtapa(null);
     fetchEtapas();
   };
 
@@ -147,6 +180,18 @@ const Cronograma = () => {
         <NovaEtapaForm 
           onSuccess={handleFormSuccess}
           onCancel={() => setShowForm(false)}
+        />
+      </div>
+    );
+  }
+
+  if (editingEtapa) {
+    return (
+      <div className="p-6">
+        <EditarEtapaForm 
+          etapa={editingEtapa}
+          onSuccess={handleFormSuccess}
+          onCancel={() => setEditingEtapa(null)}
         />
       </div>
     );
@@ -221,6 +266,14 @@ const Cronograma = () => {
                       {getStatusIcon(etapa.status)}
                       {etapa.status}
                     </Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingEtapa(etapa)}
+                      title="Editar"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -246,6 +299,34 @@ const Cronograma = () => {
                             Retomar Etapa
                           </DropdownMenuItem>
                         )}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem 
+                              onSelect={(e) => e.preventDefault()}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir Etapa
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir etapa</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir a etapa "{etapa.nome}"? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDeleteEtapa(etapa.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>

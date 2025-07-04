@@ -7,6 +7,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovoFuncionarioForm } from "@/components/forms/NovoFuncionarioForm";
 import { EditarFuncionarioForm } from "@/components/forms/EditarFuncionarioForm";
+import { EquipeFilters } from "@/components/filters/EquipeFilters";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -22,13 +23,38 @@ import {
 
 const Equipe = () => {
   const [funcionarios, setFuncionarios] = useState<any[]>([]);
+  const [filteredFuncionarios, setFilteredFuncionarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingFuncionario, setEditingFuncionario] = useState<any>(null);
+  const [cargoFilter, setCargoFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchFuncionarios();
   }, []);
+
+  useEffect(() => {
+    filterFuncionarios();
+  }, [funcionarios, cargoFilter, searchTerm]);
+
+  const filterFuncionarios = () => {
+    let filtered = [...funcionarios];
+
+    // Filtro por cargo
+    if (cargoFilter !== "all") {
+      filtered = filtered.filter(funcionario => funcionario.funcao === cargoFilter);
+    }
+
+    // Filtro por busca
+    if (searchTerm) {
+      filtered = filtered.filter(funcionario => 
+        funcionario.nome.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredFuncionarios(filtered);
+  };
 
   const fetchFuncionarios = async () => {
     try {
@@ -128,40 +154,59 @@ const Equipe = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-navy">Equipe</h1>
-          <p className="text-gray-600 mt-1">Gerencie sua equipe de trabalho</p>
+      <div className="flex flex-col space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-navy">Equipe</h1>
+            <p className="text-gray-600 mt-1">Gerencie sua equipe de trabalho</p>
+          </div>
+          <Button 
+            className="bg-secondary hover:bg-secondary/90"
+            onClick={() => setShowForm(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Funcionário
+          </Button>
         </div>
-        <Button 
-          className="bg-secondary hover:bg-secondary/90"
-          onClick={() => setShowForm(true)}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Funcionário
-        </Button>
+
+        <EquipeFilters
+          cargoFilter={cargoFilter}
+          searchTerm={searchTerm}
+          onCargoFilterChange={setCargoFilter}
+          onSearchTermChange={setSearchTerm}
+        />
+
+        <div className="text-sm text-gray-500">
+          {filteredFuncionarios.length} de {funcionarios.length} funcionários
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-8">
           <p className="text-gray-500">Carregando funcionários...</p>
         </div>
-      ) : funcionarios.length === 0 ? (
+      ) : filteredFuncionarios.length === 0 ? (
         <div className="text-center py-8">
           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhum funcionário cadastrado</h3>
-          <p className="text-gray-500 mb-4">Comece adicionando membros à sua equipe</p>
-          <Button 
-            className="bg-secondary hover:bg-secondary/90"
-            onClick={() => setShowForm(true)}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Primeiro Funcionário
-          </Button>
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">
+            {funcionarios.length === 0 ? "Nenhum funcionário cadastrado" : "Nenhum funcionário encontrado"}
+          </h3>
+          <p className="text-gray-500 mb-4">
+            {funcionarios.length === 0 ? "Comece adicionando membros à sua equipe" : "Tente ajustar os filtros"}
+          </p>
+          {funcionarios.length === 0 && (
+            <Button 
+              className="bg-secondary hover:bg-secondary/90"
+              onClick={() => setShowForm(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Primeiro Funcionário
+            </Button>
+          )}
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {funcionarios.map((funcionario) => (
+          {filteredFuncionarios.map((funcionario) => (
             <Card key={funcionario.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
                 <div className="flex justify-between items-start">

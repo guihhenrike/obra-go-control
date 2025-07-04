@@ -187,11 +187,17 @@ export function Header() {
         <div className="h-8 w-px bg-gray-200" />
 
         <div className="flex items-center gap-3">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-medium text-navy">{getUserDisplayName()}</p>
-            <p className="text-xs text-gray-500">Plano Premium</p>
+          <div 
+            className="text-right hidden sm:block cursor-pointer"
+            onClick={() => navigate('/configuracoes')}
+          >
+            <p className="text-sm font-medium text-navy hover:text-secondary transition-colors">{getUserDisplayName()}</p>
+            <p className="text-xs text-gray-500">Construtor</p>
           </div>
-          <div className="w-10 h-10 bg-gradient-to-br from-navy to-light-blue rounded-full flex items-center justify-center text-white font-semibold">
+          <div 
+            className="w-10 h-10 bg-gradient-to-br from-navy to-light-blue rounded-full flex items-center justify-center text-white font-semibold cursor-pointer hover:opacity-80 transition-opacity"
+            onClick={() => navigate('/configuracoes')}
+          >
             {getUserInitials()}
           </div>
           <Button 

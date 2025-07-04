@@ -1,10 +1,12 @@
-import { FileText, Plus, Send, Eye, Download, Trash2, Share } from "lucide-react";
+
+import { FileText, Plus, Send, Eye, Download, Trash2, Share, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovoOrcamentoForm } from "@/components/forms/NovoOrcamentoForm";
+import { EditarOrcamentoForm } from "@/components/forms/EditarOrcamentoForm";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
 import { OrcamentoFilters } from "@/components/filters/OrcamentoFilters";
 import { toast } from "sonner";
@@ -25,6 +27,7 @@ const Orcamentos = () => {
   const [filteredOrcamentos, setFilteredOrcamentos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingOrcamento, setEditingOrcamento] = useState<any>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -119,6 +122,7 @@ const Orcamentos = () => {
 
   const handleFormSuccess = () => {
     setShowForm(false);
+    setEditingOrcamento(null);
     fetchOrcamentos();
   };
 
@@ -209,6 +213,18 @@ Status: ${orcamento.status}
         <NovoOrcamentoForm 
           onSuccess={handleFormSuccess}
           onCancel={() => setShowForm(false)}
+        />
+      </div>
+    );
+  }
+
+  if (editingOrcamento) {
+    return (
+      <div className="p-6">
+        <EditarOrcamentoForm 
+          orcamento={editingOrcamento}
+          onSuccess={handleFormSuccess}
+          onCancel={() => setEditingOrcamento(null)}
         />
       </div>
     );
@@ -310,6 +326,14 @@ Status: ${orcamento.status}
                     </p>
                   </div>
                   <div className="flex gap-1 flex-wrap">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => setEditingOrcamento(orcamento)}
+                      title="Editar"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
                     <Button 
                       size="sm" 
                       variant="outline"

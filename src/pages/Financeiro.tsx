@@ -1,28 +1,66 @@
 
-import { DollarSign, Plus, TrendingUp, TrendingDown, Calendar } from "lucide-react";
+import { DollarSign, Plus, TrendingUp, TrendingDown, Calendar, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NovaTransacaoForm } from "@/components/forms/NovaTransacaoForm";
+import { EditarTransacaoForm } from "@/components/forms/EditarTransacaoForm";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import { FinanceiroFilters } from "@/components/filters/FinanceiroFilters";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const Financeiro = () => {
   const [transacoes, setTransacoes] = useState<any[]>([]);
   const [filteredTransacoes, setFilteredTransacoes] = useState<any[]>([]);
+  const [obras, setObras] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingTransacao, setEditingTransacao] = useState<any>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [tipoFilter, setTipoFilter] = useState("all");
+  const [obraFilter, setObraFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchTransacoes();
+    fetchObras();
   }, []);
 
   useEffect(() => {
     filterTransacoes();
-  }, [transacoes, startDate, endDate]);
+  }, [transacoes, startDate, endDate, tipoFilter, obraFilter, searchTerm]);
+
+  const fetchObras = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("obras")
+        .select("id, nome")
+        .eq("user_id", user.id)
+        .order("nome");
+
+      if (error) throw error;
+      setObras(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar obras:", error);
+    }
+  };
 
   const fetchTransacoes = async () => {
     try {
@@ -50,6 +88,7 @@ const Financeiro = () => {
   const filterTransacoes = () => {
     let filtered = [...transacoes];
 
+    // Filtro por data
     if (startDate || endDate) {
       filtered = filtered.filter(transacao => {
         const transacaoDate = new Date(transacao.data);
@@ -68,6 +107,28 @@ const Financeiro = () => {
         
         return true;
       });
+    }
+
+    // Filtro por tipo
+    if (tipoFilter !== "all") {
+      filtered = filtered.filter(transacao => transacao.tipo === tipoFilter);
+    }
+
+    // Filtro por obra
+    if (obraFilter !== "all") {
+      if (obraFilter === "none") {
+        filtered = filtered.filter(transacao => !transacao.obra_id);
+      } else {
+        filtered = filtered.filter(transacao => transacao.obra_id === obraFilter);
+      }
+    }
+
+    // Filtro por busca
+    if (searchTerm) {
+      filtered = filtered.filter(transacao => 
+        (transacao.obras?.nome || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        transacao.descricao.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
     setFilteredTransacoes(filtered);
@@ -106,7 +167,25 @@ const Financeiro = () => {
 
   const handleFormSuccess = () => {
     setShowForm(false);
+    setEditingTransacao(null);
     fetchTransacoes();
+  };
+
+  const handleDeleteTransacao = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("transacoes")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+      
+      toast.success("Transação excluída com sucesso!");
+      fetchTransacoes();
+    } catch (error) {
+      console.error("Erro ao excluir transação:", error);
+      toast.error("Erro ao excluir transação");
+    }
   };
 
   if (showForm) {
@@ -115,6 +194,18 @@ const Financeiro = () => {
         <NovaTransacaoForm 
           onSuccess={handleFormSuccess}
           onCancel={() => setShowForm(false)}
+        />
+      </div>
+    );
+  }
+
+  if (editingTransacao) {
+    return (
+      <div className="p-6">
+        <EditarTransacaoForm 
+          transacao={editingTransacao}
+          onSuccess={handleFormSuccess}
+          onCancel={() => setEditingTransacao(null)}
         />
       </div>
     );
@@ -136,6 +227,16 @@ const Financeiro = () => {
             Nova Transação
           </Button>
         </div>
+
+        <FinanceiroFilters
+          tipoFilter={tipoFilter}
+          obraFilter={obraFilter}
+          searchTerm={searchTerm}
+          obras={obras}
+          onTipoFilterChange={setTipoFilter}
+          onObraFilterChange={setObraFilter}
+          onSearchTermChange={setSearchTerm}
+        />
 
         <div className="flex items-center gap-4">
           <DateRangeFilter 
@@ -193,10 +294,10 @@ const Financeiro = () => {
         <div className="text-center py-8">
           <DollarSign className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-700 mb-2">
-            {transacoes.length === 0 ? "Nenhuma transação registrada" : "Nenhuma transação encontrada no período"}
+            {transacoes.length === 0 ? "Nenhuma transação registrada" : "Nenhuma transação encontrada"}
           </h3>
           <p className="text-gray-500 mb-4">
-            {transacoes.length === 0 ? "Comece registrando suas receitas e despesas" : "Tente ajustar o filtro de data"}
+            {transacoes.length === 0 ? "Comece registrando suas receitas e despesas" : "Tente ajustar os filtros"}
           </p>
           {transacoes.length === 0 && (
             <Button 
@@ -223,6 +324,45 @@ const Financeiro = () => {
                       <span className="text-sm text-gray-500">
                         {transacao.categoria}
                       </span>
+                      <div className="flex gap-1 ml-auto">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setEditingTransacao(transacao)}
+                          title="Editar"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-red-600 hover:text-red-700"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir transação</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => handleDeleteTransacao(transacao.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </div>
                     <h3 className="font-semibold text-navy mb-1">{transacao.descricao}</h3>
                     <div className="flex items-center gap-4 text-sm text-gray-600">

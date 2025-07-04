@@ -1,3 +1,4 @@
+
 import { Building2, Plus, Calendar, DollarSign, Users, MoreVertical, Check, Clock, Trash2, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NovaObraForm } from "@/components/forms/NovaObraForm";
 import { EditarObraForm } from "@/components/forms/EditarObraForm";
 import { DateRangeFilter } from "@/components/filters/DateRangeFilter";
+import { ObrasFilters } from "@/components/filters/ObrasFilters";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +37,8 @@ const Obras = () => {
   const [obraToDelete, setObraToDelete] = useState<any>(null);
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchObras();
@@ -42,11 +46,12 @@ const Obras = () => {
 
   useEffect(() => {
     filterObras();
-  }, [obras, startDate, endDate]);
+  }, [obras, startDate, endDate, statusFilter, searchTerm]);
 
   const filterObras = () => {
     let filtered = [...obras];
 
+    // Filtro por data
     if (startDate || endDate) {
       filtered = filtered.filter(obra => {
         const obraDate = new Date(obra.data_inicio);
@@ -65,6 +70,19 @@ const Obras = () => {
         
         return true;
       });
+    }
+
+    // Filtro por status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(obra => obra.status === statusFilter);
+    }
+
+    // Filtro por busca
+    if (searchTerm) {
+      filtered = filtered.filter(obra => 
+        obra.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        obra.cliente.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
 
     setFilteredObras(filtered);
@@ -217,6 +235,13 @@ const Obras = () => {
           </Button>
         </div>
 
+        <ObrasFilters
+          statusFilter={statusFilter}
+          searchTerm={searchTerm}
+          onStatusFilterChange={setStatusFilter}
+          onSearchTermChange={setSearchTerm}
+        />
+
         <div className="flex items-center gap-4">
           <DateRangeFilter 
             onDateRangeChange={handleDateRangeChange}
@@ -237,10 +262,10 @@ const Obras = () => {
         <div className="text-center py-8">
           <Building2 className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-gray-700 mb-2">
-            {obras.length === 0 ? "Nenhuma obra cadastrada" : "Nenhuma obra encontrada no período"}
+            {obras.length === 0 ? "Nenhuma obra cadastrada" : "Nenhuma obra encontrada"}
           </h3>
           <p className="text-gray-500 mb-4">
-            {obras.length === 0 ? "Comece criando sua primeira obra" : "Tente ajustar o filtro de data"}
+            {obras.length === 0 ? "Comece criando sua primeira obra" : "Tente ajustar os filtros"}
           </p>
           {obras.length === 0 && (
             <Button 
