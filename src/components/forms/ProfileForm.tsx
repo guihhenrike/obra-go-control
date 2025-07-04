@@ -9,21 +9,21 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ProfileData {
   id: string;
-  first_name: string;
-  last_name: string;
+  name: string;
   email: string;
   phone: string;
   company: string;
+  role: string;
 }
 
 export function ProfileForm() {
   const [formData, setFormData] = useState<ProfileData>({
     id: "",
-    first_name: "",
-    last_name: "",
+    name: "",
     email: "",
     phone: "",
-    company: ""
+    company: "",
+    role: ""
   });
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
@@ -37,15 +37,33 @@ export function ProfileForm() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Usar dados do user metadata diretamente já que não temos tabela profiles
-      setFormData({
-        id: user.id,
-        first_name: user.user_metadata?.first_name || "",
-        last_name: user.user_metadata?.last_name || "",
-        email: user.email || "",
-        phone: user.user_metadata?.phone || "",
-        company: user.user_metadata?.company || ""
-      });
+      // Buscar dados do perfil na tabela profiles
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        setFormData({
+          id: user.id,
+          name: profile.name || "",
+          email: user.email || "",
+          phone: user.user_metadata?.phone || "",
+          company: user.user_metadata?.company || "",
+          role: profile.role || ""
+        });
+      } else {
+        // Fallback para user metadata se não encontrar profile
+        setFormData({
+          id: user.id,
+          name: user.user_metadata?.full_name || "",
+          email: user.email || "",
+          phone: user.user_metadata?.phone || "",
+          company: user.user_metadata?.company || "",
+          role: ""
+        });
+      }
     } catch (error) {
       console.error("Erro ao carregar perfil:", error);
     }
@@ -62,15 +80,24 @@ export function ProfileForm() {
       // Atualizar user metadata
       const { error: userError } = await supabase.auth.updateUser({
         data: {
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          full_name: `${formData.first_name} ${formData.last_name}`,
+          full_name: formData.name,
           phone: formData.phone,
           company: formData.company
         }
       });
 
       if (userError) throw userError;
+
+      // Atualizar perfil na tabela profiles
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          name: formData.name,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", user.id);
+
+      if (profileError) throw profileError;
 
       toast({
         title: "Perfil atualizado",
@@ -94,6 +121,21 @@ export function ProfileForm() {
     }
   };
 
+  const getRoleDisplay = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "Administrador";
+      case "user":
+        return "Usuário";
+      case "pending":
+        return "Pendente de Aprovação";
+      case "blocked":
+        return "Bloqueado";
+      default:
+        return "Não definido";
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -101,26 +143,16 @@ export function ProfileForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="first_name">Nome</Label>
-              <Input
-                id="first_name"
-                value={formData.first_name}
-                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="last_name">Sobrenome</Label>
-              <Input
-                id="last_name"
-                value={formData.last_name}
-                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                required
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="name">Nome Completo</Label>
+            <Input
+              id="name"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              required
+            />
           </div>
+          
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -128,10 +160,11 @@ export function ProfileForm() {
               type="email"
               value={formData.email}
               disabled
-              className="bg-gray-100"
+              className="bg-gray-100 dark:bg-gray-800"
             />
             <p className="text-xs text-gray-500">O email não pode ser alterado</p>
           </div>
+          
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="phone">Telefone</Label>
@@ -152,6 +185,18 @@ export function ProfileForm() {
               />
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="role">Nível de Acesso</Label>
+            <Input
+              id="role"
+              value={getRoleDisplay(formData.role)}
+              disabled
+              className="bg-gray-100 dark:bg-gray-800"
+            />
+            <p className="text-xs text-gray-500">O nível de acesso é definido pelo administrador</p>
+          </div>
+          
           <Button type="submit" disabled={loading} className="bg-secondary hover:bg-secondary/90">
             {loading ? "Salvando..." : "Salvar Alterações"}
           </Button>

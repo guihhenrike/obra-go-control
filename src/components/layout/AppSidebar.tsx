@@ -1,5 +1,5 @@
 
-import { Home, Building2, Users, Package, DollarSign, FileText, Calendar, Settings, LogOut } from "lucide-react";
+import { Home, Building2, Users, Package, DollarSign, FileText, Calendar, Settings, LogOut, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +32,7 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
@@ -41,11 +42,27 @@ export function AppSidebar() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Como não temos tabela profiles, vamos usar dados do auth
-        setUserProfile({
-          nome: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
-          profissao: 'Construtor'
-        });
+        // Buscar dados do perfil na tabela profiles
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (profile) {
+          setUserProfile({
+            nome: profile.name || user.email?.split('@')[0] || 'Usuário',
+            profissao: profile.role === 'admin' ? 'Administrador' : 'Construtor',
+            role: profile.role
+          });
+          setIsAdmin(profile.role === 'admin');
+        } else {
+          // Fallback para dados do auth se não encontrar profile
+          setUserProfile({
+            nome: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Usuário',
+            profissao: 'Construtor'
+          });
+        }
       }
     } catch (error) {
       console.error("Erro ao buscar perfil:", error);
@@ -64,6 +81,11 @@ export function AppSidebar() {
     return location.pathname.startsWith(path);
   };
 
+  // Adicionar item de Admin se for administrador
+  const allMenuItems = isAdmin 
+    ? [{ title: "Admin", url: "/admin", icon: Shield }, ...menuItems]
+    : menuItems;
+
   return (
     <Sidebar className="border-r">
       <SidebarContent>
@@ -73,7 +95,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {allMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
                     asChild 

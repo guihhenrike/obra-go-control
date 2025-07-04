@@ -11,6 +11,7 @@ import { Header } from "@/components/layout/Header";
 import AuthGuard from "@/components/AuthGuard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Admin from "./pages/Admin";
 import Obras from "./pages/Obras";
 import Equipe from "./pages/Equipe";
 import Materiais from "./pages/Materiais";
@@ -47,6 +48,7 @@ const App = () => (
                       <main className="flex-1">
                         <Routes>
                           <Route path="/" element={<Index />} />
+                          <Route path="/admin" element={<Admin />} />
                           <Route path="/obras" element={<Obras />} />
                           <Route path="/equipe" element={<Equipe />} />
                           <Route path="/materiais" element={<Materiais />} />
