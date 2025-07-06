@@ -62,39 +62,42 @@ export type Database = {
       funcionarios: {
         Row: {
           created_at: string
-          diaria: number
-          email: string
+          email: string | null
           funcao: string
           id: string
           nome: string
           status: string
           telefone: string
+          tipo_remuneracao: string
           updated_at: string
           user_id: string
+          valor_remuneracao: number
         }
         Insert: {
           created_at?: string
-          diaria: number
-          email: string
+          email?: string | null
           funcao: string
           id?: string
           nome: string
           status?: string
           telefone: string
+          tipo_remuneracao?: string
           updated_at?: string
           user_id: string
+          valor_remuneracao: number
         }
         Update: {
           created_at?: string
-          diaria?: number
-          email?: string
+          email?: string | null
           funcao?: string
           id?: string
           nome?: string
           status?: string
           telefone?: string
+          tipo_remuneracao?: string
           updated_at?: string
           user_id?: string
+          valor_remuneracao?: number
         }
         Relationships: []
       }

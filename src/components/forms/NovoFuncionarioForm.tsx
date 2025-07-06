@@ -19,7 +19,8 @@ export function NovoFuncionarioForm({ onSuccess, onCancel }: NovoFuncionarioForm
     funcao: "",
     telefone: "",
     email: "",
-    diaria: "",
+    valor_remuneracao: "",
+    tipo_remuneracao: "diaria",
     status: "Ativo"
   });
   const [loading, setLoading] = useState(false);
@@ -40,8 +41,9 @@ export function NovoFuncionarioForm({ onSuccess, onCancel }: NovoFuncionarioForm
           nome: formData.nome,
           funcao: formData.funcao,
           telefone: formData.telefone,
-          email: formData.email,
-          diaria: parseFloat(formData.diaria),
+          email: formData.email || null,
+          valor_remuneracao: parseFloat(formData.valor_remuneracao),
+          tipo_remuneracao: formData.tipo_remuneracao,
           status: formData.status
         });
 
@@ -102,43 +104,58 @@ export function NovoFuncionarioForm({ onSuccess, onCancel }: NovoFuncionarioForm
             </div>
             
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email (opcional)</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
+                placeholder="email@exemplo.com"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="diaria">Diária (R$)</Label>
-              <Input
-                id="diaria"
-                type="number"
-                step="0.01"
-                value={formData.diaria}
-                onChange={(e) => setFormData({ ...formData, diaria: e.target.value })}
-                required
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Label htmlFor="tipo_remuneracao">Tipo de Remuneração</Label>
+              <Select value={formData.tipo_remuneracao} onValueChange={(value) => setFormData({ ...formData, tipo_remuneracao: value })}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Ativo">Ativo</SelectItem>
-                  <SelectItem value="Férias">Férias</SelectItem>
-                  <SelectItem value="Inativo">Inativo</SelectItem>
+                  <SelectItem value="diaria">Diária</SelectItem>
+                  <SelectItem value="salario">Salário</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            
+            <div>
+              <Label htmlFor="valor_remuneracao">
+                {formData.tipo_remuneracao === 'diaria' ? 'Valor da Diária (R$)' : 'Salário Mensal (R$)'}
+              </Label>
+              <Input
+                id="valor_remuneracao"
+                type="number"
+                step="0.01"
+                value={formData.valor_remuneracao}
+                onChange={(e) => setFormData({ ...formData, valor_remuneracao: e.target.value })}
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="status">Status</Label>
+            <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Férias">Férias</SelectItem>
+                <SelectItem value="Inativo">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex gap-4 pt-4">

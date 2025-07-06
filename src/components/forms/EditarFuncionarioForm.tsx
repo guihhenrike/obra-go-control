@@ -17,10 +17,11 @@ interface EditarFuncionarioFormProps {
 export function EditarFuncionarioForm({ funcionario, onSuccess, onCancel }: EditarFuncionarioFormProps) {
   const [formData, setFormData] = useState({
     nome: funcionario.nome,
-    email: funcionario.email,
+    email: funcionario.email || "",
     telefone: funcionario.telefone,
     funcao: funcionario.funcao,
-    diaria: funcionario.diaria,
+    valor_remuneracao: funcionario.valor_remuneracao,
+    tipo_remuneracao: funcionario.tipo_remuneracao || "diaria",
     status: funcionario.status
   });
   const [loading, setLoading] = useState(false);
@@ -32,7 +33,10 @@ export function EditarFuncionarioForm({ funcionario, onSuccess, onCancel }: Edit
     try {
       const { error } = await supabase
         .from("funcionarios")
-        .update(formData)
+        .update({
+          ...formData,
+          email: formData.email || null
+        })
         .eq("id", funcionario.id);
 
       if (error) throw error;
@@ -66,13 +70,13 @@ export function EditarFuncionarioForm({ funcionario, onSuccess, onCancel }: Edit
             </div>
 
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email (opcional)</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                required
+                placeholder="email@exemplo.com"
               />
             </div>
 
@@ -97,13 +101,28 @@ export function EditarFuncionarioForm({ funcionario, onSuccess, onCancel }: Edit
             </div>
 
             <div>
-              <Label htmlFor="diaria">Diária (R$)</Label>
+              <Label htmlFor="tipo_remuneracao">Tipo de Remuneração</Label>
+              <Select value={formData.tipo_remuneracao} onValueChange={(value) => setFormData({...formData, tipo_remuneracao: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="diaria">Diária</SelectItem>
+                  <SelectItem value="salario">Salário</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="valor_remuneracao">
+                {formData.tipo_remuneracao === 'diaria' ? 'Valor da Diária (R$)' : 'Salário Mensal (R$)'}
+              </Label>
               <Input
-                id="diaria"
+                id="valor_remuneracao"
                 type="number"
                 step="0.01"
-                value={formData.diaria}
-                onChange={(e) => setFormData({...formData, diaria: parseFloat(e.target.value)})}
+                value={formData.valor_remuneracao}
+                onChange={(e) => setFormData({...formData, valor_remuneracao: parseFloat(e.target.value)})}
                 required
               />
             </div>
