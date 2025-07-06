@@ -226,17 +226,21 @@ const Equipe = () => {
                     <Phone className="w-4 h-4 text-gray-500" />
                     <span className="text-sm text-gray-600">{funcionario.telefone}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">{funcionario.email}</span>
-                  </div>
+                  {funcionario.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-600">{funcionario.email}</span>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="pt-2 border-t">
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-sm font-medium">Diária:</span>
+                    <span className="text-sm font-medium">
+                      {funcionario.tipo_remuneracao === 'salario' ? 'Salário:' : 'Diária:'}
+                    </span>
                     <span className="text-lg font-bold text-secondary">
-                      R$ {funcionario.diaria}
+                      R$ {funcionario.valor_remuneracao ? Number(funcionario.valor_remuneracao).toFixed(2) : '0,00'}
                     </span>
                   </div>
                   
