@@ -22,26 +22,68 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    console.log("Iniciando processo de recuperação de senha");
+    console.log("=== Iniciando processo de recuperação de senha ===");
+    
+    // Verificar se temos as variáveis de ambiente necessárias
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const resendKey = Deno.env.get('RESEND_API_KEY');
+    
+    console.log("Verificando variáveis de ambiente:", {
+      supabaseUrl: !!supabaseUrl,
+      supabaseServiceKey: !!supabaseServiceKey,
+      resendKey: !!resendKey
+    });
+
+    if (!supabaseUrl || !supabaseServiceKey || !resendKey) {
+      console.error("Variáveis de ambiente faltando");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Configuração do servidor incompleta" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
     
     const { email }: PasswordResetRequest = await req.json();
-    console.log("Email recebido:", email);
+    console.log("Email recebido para recuperação:", email);
 
     // Criar cliente Supabase
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Verificar se o usuário existe
-    const { data: user, error: userError } = await supabase.auth.admin.listUsers();
-    const userExists = user?.users.find(u => u.email === email);
+    console.log("Verificando se usuário existe...");
+    const { data: users, error: userError } = await supabase.auth.admin.listUsers();
+    
+    if (userError) {
+      console.error("Erro ao listar usuários:", userError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Erro interno do servidor" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    const userExists = users?.users.find(u => u.email === email);
+    console.log("Usuário encontrado:", !!userExists);
 
     if (!userExists) {
-      console.log("Usuário não encontrado:", email);
+      console.log("Usuário não encontrado, mas retornando sucesso por segurança");
       // Por segurança, vamos retornar sucesso mesmo se o usuário não existir
       return new Response(
-        JSON.stringify({ success: true, message: "Se o email existir, um link de recuperação será enviado." }),
+        JSON.stringify({ 
+          success: true, 
+          message: "Se o email existir, um link de recuperação será enviado." 
+        }),
         {
           status: 200,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -50,22 +92,52 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Gerar token de recuperação
+    console.log("Gerando link de recuperação...");
+    const origin = req.headers.get('origin') || 'https://obra-go-control.lovable.app';
+    const redirectUrl = `${origin}/auth?mode=reset`;
+    
+    console.log("URL de redirecionamento:", redirectUrl);
+    
     const { data: resetData, error: resetError } = await supabase.auth.admin.generateLink({
       type: 'recovery',
       email: email,
       options: {
-        redirectTo: `${req.headers.get('origin') || 'https://obra-go-control.lovable.app'}/auth?mode=reset`
+        redirectTo: redirectUrl
       }
     });
 
     if (resetError) {
       console.error("Erro ao gerar link de recuperação:", resetError);
-      throw resetError;
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Erro ao gerar link de recuperação" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    if (!resetData?.properties?.action_link) {
+      console.error("Link de recuperação não foi gerado");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Erro ao gerar link de recuperação" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
     console.log("Link de recuperação gerado com sucesso");
 
     // Enviar email via Resend
+    console.log("Enviando email via Resend...");
     const emailResponse = await resend.emails.send({
       from: "ObraGo <noreply@obragocontrol.com>",
       to: [email],
@@ -91,7 +163,7 @@ const handler = async (req: Request): Promise<Response> => {
             </p>
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetData.properties?.action_link}" 
+              <a href="${resetData.properties.action_link}" 
                  style="background-color: #ef4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
                 Redefinir Senha
               </a>
@@ -112,7 +184,23 @@ const handler = async (req: Request): Promise<Response> => {
       `,
     });
 
-    console.log("Email enviado com sucesso:", emailResponse);
+    console.log("Resposta do Resend:", emailResponse);
+
+    if (emailResponse.error) {
+      console.error("Erro ao enviar email:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Erro ao enviar email. Tente novamente." 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log("Email enviado com sucesso!");
 
     return new Response(
       JSON.stringify({ 
@@ -127,11 +215,18 @@ const handler = async (req: Request): Promise<Response> => {
     );
 
   } catch (error: any) {
-    console.error("Erro na função de recuperação de senha:", error);
+    console.error("=== ERRO GERAL na função ===");
+    console.error("Tipo do erro:", typeof error);
+    console.error("Nome do erro:", error?.name);
+    console.error("Mensagem:", error?.message);
+    console.error("Stack:", error?.stack);
+    console.error("Erro completo:", JSON.stringify(error, null, 2));
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: "Erro interno do servidor. Tente novamente." 
+        error: "Erro interno do servidor. Tente novamente em alguns minutos.",
+        details: error?.message || "Erro desconhecido"
       }),
       {
         status: 500,

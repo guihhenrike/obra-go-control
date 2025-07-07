@@ -84,31 +84,69 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      console.log("Enviando email de recuperação para:", email);
+      console.log("Iniciando recuperação de senha para:", email);
+      
+      if (!email) {
+        toast({
+          title: "Email obrigatório",
+          description: "Por favor, digite seu email.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("Chamando edge function...");
       
       const { data, error } = await supabase.functions.invoke('send-password-reset', {
-        body: { email }
+        body: { email },
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
 
+      console.log('Resposta da edge function:', { data, error });
+
       if (error) {
-        console.error('Erro ao chamar função:', error);
+        console.error('Erro da edge function:', error);
+        
+        // Verificar se é um erro de rede
+        if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
+          throw new Error('Problema de conexão. Verifique sua internet e tente novamente.');
+        }
+        
         throw error;
       }
 
-      console.log('Resposta da função:', data);
+      if (data?.success) {
+        toast({
+          title: "Email enviado!",
+          description: data.message || "Verifique sua caixa de entrada e spam.",
+        });
+        
+        setIsForgotPassword(false);
+        setIsLogin(true);
+      } else {
+        throw new Error(data?.error || 'Erro desconhecido');
+      }
       
-      toast({
-        title: "Email enviado!",
-        description: "Se o email existir em nossa base, você receberá um link de recuperação.",
-      });
-      
-      setIsForgotPassword(false);
-      setIsLogin(true);
     } catch (error: any) {
-      console.error("Erro completo:", error);
+      console.error("Erro ao enviar email de recuperação:", error);
+      
+      let errorMessage = "Erro ao enviar email. Tente novamente.";
+      
+      if (error.message) {
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = "Problema de conexão. Verifique sua internet.";
+        } else if (error.message.includes('timeout')) {
+          errorMessage = "Timeout na requisição. Tente novamente.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Erro ao enviar email",
-        description: "Tente novamente em alguns minutos.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
