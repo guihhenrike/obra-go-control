@@ -55,12 +55,26 @@ const handler = async (req: Request): Promise<Response> => {
       resendKey: !!resendKey
     });
 
-    if (!supabaseUrl || !supabaseServiceKey || !resendKey) {
-      console.error("Missing environment variables");
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing Supabase environment variables");
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Server configuration error" 
+          error: "Supabase configuration error" 
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    if (!resendKey) {
+      console.error("Missing RESEND_API_KEY");
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Email service not configured" 
         }),
         {
           status: 500,
