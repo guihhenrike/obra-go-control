@@ -84,7 +84,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      console.log("Iniciando recuperação de senha para:", email);
+      console.log("Starting password recovery for:", email);
       
       if (!email) {
         toast({
@@ -95,29 +95,34 @@ const Auth = () => {
         return;
       }
 
-      console.log("Chamando edge function...");
+      console.log("Calling edge function...");
       
-      const { data, error } = await supabase.functions.invoke('send-password-reset', {
-        body: { email },
+      // Use the full function URL instead of supabase.functions.invoke
+      const functionUrl = 'https://omdgtlaoisslhitjgenf.supabase.co/functions/v1/send-password-reset';
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-        }
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'apikey': supabase.supabaseKey,
+        },
+        body: JSON.stringify({ email }),
       });
 
-      console.log('Resposta da edge function:', { data, error });
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
 
-      if (error) {
-        console.error('Erro da edge function:', error);
-        
-        // Verificar se é um erro de rede
-        if (error.message?.includes('Failed to fetch') || error.message?.includes('network')) {
-          throw new Error('Problema de conexão. Verifique sua internet e tente novamente.');
-        }
-        
-        throw error;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Response not ok:', errorText);
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
-      if (data?.success) {
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (data.success) {
         toast({
           title: "Email enviado!",
           description: data.message || "Verifique sua caixa de entrada e spam.",
@@ -126,11 +131,11 @@ const Auth = () => {
         setIsForgotPassword(false);
         setIsLogin(true);
       } else {
-        throw new Error(data?.error || 'Erro desconhecido');
+        throw new Error(data.error || 'Erro desconhecido');
       }
       
     } catch (error: any) {
-      console.error("Erro ao enviar email de recuperação:", error);
+      console.error("Error sending password recovery email:", error);
       
       let errorMessage = "Erro ao enviar email. Tente novamente.";
       
