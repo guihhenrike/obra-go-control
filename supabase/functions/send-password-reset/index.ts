@@ -56,9 +56,14 @@ const handler = async (req: Request): Promise<Response> => {
       resendKeyLength: resendKey?.length || 0
     });
 
-    console.log("All env vars:", Object.keys(Deno.env.toObject()));
-    console.log("RESEND_API_KEY exists:", !!Deno.env.get('RESEND_API_KEY'));
-    console.log("RESEND_API_KEY value start:", Deno.env.get('RESEND_API_KEY')?.substring(0, 10));
+    console.log("All env vars that include RESEND:", Object.keys(Deno.env.toObject()).filter(key => key.includes('RESEND')));
+    console.log("RESEND_API_KEY raw value:", Deno.env.get('RESEND_API_KEY'));
+    console.log("RESEND_API_KEY type:", typeof Deno.env.get('RESEND_API_KEY'));
+    console.log("RESEND_API_KEY length:", Deno.env.get('RESEND_API_KEY')?.length);
+    
+    const rawResendKey = Deno.env.get('RESEND_API_KEY');
+    console.log("Raw key first 20 chars:", rawResendKey?.substring(0, 20));
+    console.log("Raw key trimmed:", rawResendKey?.trim());
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing Supabase environment variables");
