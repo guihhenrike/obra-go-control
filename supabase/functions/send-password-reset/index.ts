@@ -52,8 +52,11 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Environment check:", {
       supabaseUrl: !!supabaseUrl,
       supabaseServiceKey: !!supabaseServiceKey,
-      resendKey: !!resendKey
+      resendKey: !!resendKey,
+      resendKeyLength: resendKey?.length || 0
     });
+
+    console.log("All env vars:", Object.keys(Deno.env.toObject()).filter(key => key.includes('RESEND')));
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing Supabase environment variables");
