@@ -16,7 +16,6 @@ interface PasswordResetRequest {
 const handler = async (req: Request): Promise<Response> => {
   console.log("=== Password Reset Function Started ===");
   console.log("Method:", req.method);
-  console.log("Headers:", Object.fromEntries(req.headers.entries()));
 
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -52,18 +51,8 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Environment check:", {
       supabaseUrl: !!supabaseUrl,
       supabaseServiceKey: !!supabaseServiceKey,
-      resendKey: !!resendKey,
-      resendKeyLength: resendKey?.length || 0
+      resendKey: !!resendKey
     });
-
-    console.log("All env vars that include RESEND:", Object.keys(Deno.env.toObject()).filter(key => key.includes('RESEND')));
-    console.log("RESEND_API_KEY raw value:", Deno.env.get('RESEND_API_KEY'));
-    console.log("RESEND_API_KEY type:", typeof Deno.env.get('RESEND_API_KEY'));
-    console.log("RESEND_API_KEY length:", Deno.env.get('RESEND_API_KEY')?.length);
-    
-    const rawResendKey = Deno.env.get('RESEND_API_KEY');
-    console.log("Raw key first 20 chars:", rawResendKey?.substring(0, 20));
-    console.log("Raw key trimmed:", rawResendKey?.trim());
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing Supabase environment variables");
@@ -97,7 +86,7 @@ const handler = async (req: Request): Promise<Response> => {
     let requestBody;
     try {
       const text = await req.text();
-      console.log("Request body text:", text);
+      console.log("Request body received");
       requestBody = JSON.parse(text);
     } catch (e) {
       console.error("Failed to parse request body:", e);
@@ -130,15 +119,13 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Initialize Supabase client
+    console.log("Initializing Supabase client...");
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
       }
     });
-
-    // Initialize Resend
-    const resend = new Resend(resendKey);
 
     // Check if user exists
     console.log("Checking if user exists...");
@@ -220,62 +207,95 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Reset link generated successfully");
 
-    // Send email via Resend
-    console.log("Sending email via Resend...");
-    const emailResponse = await resend.emails.send({
-      from: "ObraGo <noreply@obragocontrol.com>",
-      to: [email],
-      subject: "Recuperação de Senha - ObraGo",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <div style="width: 64px; height: 64px; background-color: #ef4444; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
-              <span style="color: white; font-size: 24px;">🏗️</span>
-            </div>
-            <h1 style="color: #1e3a8a; margin: 0;">Recuperação de Senha</h1>
-          </div>
-          
-          <div style="background-color: #f8fafc; padding: 30px; border-radius: 8px; margin-bottom: 30px;">
-            <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px;">
-              Olá,
-            </p>
-            <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px;">
-              Recebemos uma solicitação para redefinir a senha da sua conta no <strong>ObraGo</strong>.
-            </p>
-            <p style="margin: 0 0 30px 0; color: #374151; font-size: 16px;">
-              Clique no botão abaixo para redefinir sua senha:
-            </p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${resetData.properties.action_link}" 
-                 style="background-color: #ef4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
-                Redefinir Senha
-              </a>
+    // Initialize Resend and send email
+    console.log("Initializing Resend...");
+    try {
+      const resend = new Resend(resendKey);
+      
+      console.log("Sending email via Resend...");
+      const emailResponse = await resend.emails.send({
+        from: "ObraGo <noreply@obragocontrol.com>",
+        to: [email],
+        subject: "Recuperação de Senha - ObraGo",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <div style="width: 64px; height: 64px; background-color: #ef4444; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 20px;">
+                <span style="color: white; font-size: 24px;">🏗️</span>
+              </div>
+              <h1 style="color: #1e3a8a; margin: 0;">Recuperação de Senha</h1>
             </div>
             
-            <p style="margin: 30px 0 0 0; color: #6b7280; font-size: 14px;">
-              Se você não solicitou a redefinição de senha, pode ignorar este email com segurança.
-            </p>
-            <p style="margin: 10px 0 0 0; color: #6b7280; font-size: 14px;">
-              Este link expira em 1 hora por motivos de segurança.
-            </p>
+            <div style="background-color: #f8fafc; padding: 30px; border-radius: 8px; margin-bottom: 30px;">
+              <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px;">
+                Olá,
+              </p>
+              <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px;">
+                Recebemos uma solicitação para redefinir a senha da sua conta no <strong>ObraGo</strong>.
+              </p>
+              <p style="margin: 0 0 30px 0; color: #374151; font-size: 16px;">
+                Clique no botão abaixo para redefinir sua senha:
+              </p>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetData.properties.action_link}" 
+                   style="background-color: #ef4444; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                  Redefinir Senha
+                </a>
+              </div>
+              
+              <p style="margin: 30px 0 0 0; color: #6b7280; font-size: 14px;">
+                Se você não solicitou a redefinição de senha, pode ignorar este email com segurança.
+              </p>
+              <p style="margin: 10px 0 0 0; color: #6b7280; font-size: 14px;">
+                Este link expira em 1 hora por motivos de segurança.
+              </p>
+            </div>
+            
+            <div style="text-align: center; color: #6b7280; font-size: 12px;">
+              <p>© 2024 ObraGo - Sistema de Gestão de Obras</p>
+            </div>
           </div>
-          
-          <div style="text-align: center; color: #6b7280; font-size: 12px;">
-            <p>© 2024 ObraGo - Sistema de Gestão de Obras</p>
-          </div>
-        </div>
-      `,
-    });
+        `,
+      });
 
-    console.log("Resend response:", emailResponse);
+      console.log("Resend response:", emailResponse);
 
-    if (emailResponse.error) {
-      console.error("Error sending email:", emailResponse.error);
+      if (emailResponse.error) {
+        console.error("Error sending email:", emailResponse.error);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Failed to send email" 
+          }),
+          {
+            status: 500,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+
+      console.log("Email sent successfully!");
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "Email de recuperação enviado com sucesso!",
+          emailId: emailResponse.data?.id 
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+
+    } catch (resendError: any) {
+      console.error("Resend initialization or sending error:", resendError);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Failed to send email" 
+          error: "Email service error",
+          details: resendError?.message || "Unknown resend error"
         }),
         {
           status: 500,
@@ -284,27 +304,12 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log("Email sent successfully!");
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: "Email de recuperação enviado com sucesso!",
-        emailId: emailResponse.data?.id 
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
-
   } catch (error: any) {
-    console.error("=== ERROR in password reset function ===");
+    console.error("=== GENERAL ERROR in password reset function ===");
     console.error("Error type:", typeof error);
     console.error("Error name:", error?.name);
     console.error("Error message:", error?.message);
     console.error("Error stack:", error?.stack);
-    console.error("Full error:", error);
     
     return new Response(
       JSON.stringify({ 
